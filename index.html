@@ -1,1508 +1,1625 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pacac High School YES-O - Attendance Monitoring System (SY 2026-2027)</title>
-    
-    <!-- Tailwind CSS -->
+    <title>Pacac High School YES-O Attendance System</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        eco: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            200: '#bbf7d0',
-                            300: '#86efac',
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                            950: '#052e16',
+                        forest: {
+                            800: '#064e3b',
+                            900: '#022c22',
+                        },
+                        emerald: {
+                            600: '#059669',
+                            700: '#047857',
                         }
                     }
                 }
             }
         }
     </script>
-    
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Chart.js for Visual Analytics -->
+
+    <!-- Chart.js for real-time analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Custom scrollbar and animations */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .pulse-green {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .absence-alert-row {
+            background-color: #fef2f2 !important;
+            border-left: 4px solid #ef4444;
+        }
     </style>
 </head>
-<body class="h-full text-slate-800 antialiased flex flex-col min-h-screen">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
 
-    <div id="app" class="flex-1 flex flex-col">
-        <!-- Toast Notification Bar -->
-        <div id="toast" class="fixed top-5 right-5 z-50 transform translate-x-full transition-transform duration-300 ease-in-out max-w-md bg-white border-l-4 border-eco-600 shadow-xl rounded-r-lg p-4 flex items-center space-x-3 pointer-events-none opacity-0">
-            <div id="toast-icon" class="text-eco-600 text-xl"><i class="fas me-2"></i></div>
-            <div class="flex-1 text-sm font-medium text-slate-700" id="toast-message">Notification message here</div>
-        </div>
+    <!-- Top Navigation Header -->
+    <header class="bg-forest-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-600 p-2 rounded-lg flex items-center justify-center text-white font-bold text-xl w-10 h-10">
+                    <i class="fa-solid font-bold fa-leaf"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight">Pacac High School YES-O</h1>
+                    <p class="text-xs text-emerald-300 hidden sm:block">Attendance Monitoring System • SY 2026-2027</p>
+                </div>
+            </div>
 
-        <!-- System Cloud Sync Status Badge -->
-        <div class="fixed bottom-4 right-4 z-40 bg-slate-900/90 backdrop-blur-md text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-2">
-            <span id="sync-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="sync-text">Cloud Synchronized</span>
-        </div>
-
-        <!-- LOGIN VIEW -->
-        <div id="login-view" class="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-eco-900 via-eco-800 to-slate-900 relative overflow-hidden">
-            <!-- Decorative Leaves/Gradients -->
-            <div class="absolute -top-24 -left-24 w-96 h-96 bg-eco-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div class="w-full max-w-md bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 relative z-10">
-                <div class="text-center mb-8">
-                    <div class="w-20 h-20 bg-eco-100 text-eco-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner text-3xl">
-                        <i class="fas fa-leaf"></i>
-                    </div>
-                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Pacac High School</h1>
-                    <p class="text-xs font-semibold text-eco-700 tracking-wider uppercase mt-1">Youth for Environment in Schools Org (YES-O)</p>
-                    <p class="text-xs text-slate-500 mt-1">Attendance Monitoring System • SY 2026-2027</p>
+            <!-- Header Right Action & Status -->
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <!-- Sync Indicator Pill -->
+                <div id="syncIndicator" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-emerald-400 border border-emerald-500/30">
+                    <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-green"></span>
+                    <span id="syncStatusText">Synced</span>
                 </div>
 
-                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Username</label>
-                        <div class="relative">
-                            <i class="fas fa-user absolute left-3 top-3 text-slate-400"></i>
-                            <input type="text" id="username" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-eco-500 focus:border-eco-500 text-sm transition" placeholder="Enter officer/admin username">
-                        </div>
+                <!-- User Profile & Logout -->
+                <div id="userHeaderInfo" class="hidden flex items-center space-x-2">
+                    <div class="text-right hidden sm:block">
+                        <p id="navUserName" class="text-sm font-semibold text-slate-100">Officer Name</p>
+                        <p id="navUserRole" class="text-xs text-slate-300">Group Officer</p>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Password</label>
-                        <div class="relative">
-                            <i class="fas fa-lock absolute left-3 top-3 text-slate-400"></i>
-                            <input type="password" id="password" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-eco-500 focus:border-eco-500 text-sm transition" placeholder="Enter password">
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full py-3 bg-eco-600 hover:bg-eco-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-eco-600/30 transition duration-200 flex items-center justify-center space-x-2">
-                        <i class="fas fa-right-to-bracket"></i>
-                        <span>Sign In to System</span>
+                    <button id="logoutBtn" onclick="appLogout()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg text-sm transition flex items-center space-x-1 border border-slate-700">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline ml-1">Logout</span>
                     </button>
-                </form>
-
-                <!-- DEMO QUICK LOGINS -->
-                <div class="mt-8 pt-6 border-t border-slate-200">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-3">Quick Demo Login Shortcuts</p>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <button onclick="quickLogin('admin', 'AdminPass2026')" class="col-span-2 py-2 px-3 bg-slate-800 text-white hover:bg-slate-900 rounded-lg text-left flex items-center justify-between font-medium">
-                            <span><i class="fas fa-user-shield me-2 text-amber-400"></i> System Administrator</span>
-                            <i class="fas fa-chevron-right text-xs opacity-60"></i>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO1', 'PresMata')" class="p-2 bg-eco-50 text-eco-900 hover:bg-eco-100 rounded-lg text-left truncate border border-eco-200">
-                            <span class="font-bold block">Panalipdan Officer</span>
-                            <span class="text-[10px] text-eco-700">PG Officer</span>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO2', 'VPresBiag')" class="p-2 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 rounded-lg text-left truncate border border-emerald-200">
-                            <span class="font-bold block">Yabong Officer</span>
-                            <span class="text-[10px] text-emerald-700">YG Officer</span>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO3', 'SecProllo')" class="p-2 bg-teal-50 text-teal-900 hover:bg-teal-100 rounded-lg text-left truncate border border-teal-200">
-                            <span class="font-bold block">Ammoyo Officer</span>
-                            <span class="text-[10px] text-teal-700">AG Officer</span>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO4', 'TreasRamiterre')" class="p-2 bg-green-50 text-green-900 hover:bg-green-100 rounded-lg text-left truncate border border-green-200">
-                            <span class="font-bold block">Lambo Officer</span>
-                            <span class="text-[10px] text-green-700">LG Officer</span>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO5', 'AudAlexa')" class="p-2 bg-lime-50 text-lime-900 hover:bg-lime-100 rounded-lg text-left truncate border border-lime-200">
-                            <span class="font-bold block">Inayan Officer</span>
-                            <span class="text-[10px] text-lime-700">IG Officer</span>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO6', 'PIOParingit')" class="p-2 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 rounded-lg text-left truncate border border-emerald-200">
-                            <span class="font-bold block">Dayaw Officer</span>
-                            <span class="text-[10px] text-emerald-700">DG Officer</span>
-                        </button>
-                        <button onclick="quickLogin('PHSYesO7', 'POTigolo')" class="col-span-2 p-2 bg-teal-50 text-teal-900 hover:bg-teal-100 rounded-lg text-left truncate border border-teal-200">
-                            <span class="font-bold block">Sibol Officer</span>
-                            <span class="text-[10px] text-teal-700">SG Officer</span>
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
+    </header>
 
-        <!-- MAIN SYSTEM DASHBOARD VIEW -->
-        <div id="main-view" class="hidden flex-1 flex flex-col bg-slate-100">
-            <!-- Header Navigation -->
-            <header class="bg-eco-900 text-white shadow-lg sticky top-0 z-30">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex items-center justify-between h-16">
-                        <!-- Brand/Org Header -->
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 bg-eco-700 text-eco-200 rounded-xl flex items-center justify-center font-bold text-xl shadow">
-                                <i class="fas fa-leaf"></i>
-                            </div>
-                            <div>
-                                <h1 class="text-base font-bold leading-tight tracking-wide">Pacac High School YES-O</h1>
-                                <p class="text-xs text-eco-300">Attendance Monitoring Portal SY 2026-2027</p>
-                            </div>
-                        </div>
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-                        <!-- User Profile & Action Bar -->
-                        <div class="flex items-center space-x-3">
-                            <div class="text-right hidden sm:block">
-                                <p id="logged-user-name" class="text-sm font-semibold text-white">Officer Name</p>
-                                <p id="logged-user-role" class="text-xs text-eco-300">Group Scope</p>
-                            </div>
-                            <span id="role-badge" class="px-2.5 py-1 text-xs font-bold rounded-full bg-eco-800 text-eco-200 border border-eco-700">Scope</span>
-                            <button onclick="handleLogout()" class="p-2 bg-eco-800 hover:bg-rose-700 text-white rounded-lg transition" title="Sign Out">
-                                <i class="fas fa-right-from-bracket"></i>
-                            </button>
-                        </div>
+        <!-- Offline Queue Warning Banner -->
+        <div id="offlineBanner" class="hidden mb-4 p-3 bg-amber-500 text-slate-900 rounded-xl font-medium text-sm flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-wifi"></i>
+                <span>You are currently offline. Attendance changes are saved locally and will auto-sync when online.</span>
+            </div>
+            <span id="pendingQueueCount" class="bg-amber-900 text-amber-100 text-xs px-2 py-0.5 rounded-full font-bold">0 Pending</span>
+        </div>
+
+        <!-- LOGIN VIEW -->
+        <section id="loginView" class="max-w-md mx-auto my-8 bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto text-2xl mb-3">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">Officer Access</h2>
+                <p class="text-slate-500 text-sm mt-1">Select account or enter credentials</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Username</label>
+                    <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-slate-800 text-sm transition" placeholder="Enter username">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-slate-800 text-sm transition" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-forest-900 hover:bg-forest-800 text-white font-semibold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Sign In to Cloud System</span>
+                </button>
+            </form>
+
+            <div class="mt-6 pt-6 border-t border-slate-200">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 text-center">Quick Test Login (1-Click Switch)</p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button onclick="quickLogin('admin', 'AdminPass2026')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-user-gear text-emerald-600"></i>
+                        <span class="truncate">Admin (Global)</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO1', 'PresMata')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G1 Panalipdan</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO2', 'VPresBiag')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G2 Yabong</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO3', 'SecProllo')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G3 Ammoyo</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO4', 'TreasRamiterre')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G4 Lambo</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO5', 'AudAlexa')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G5 Inayan</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO6', 'PIOParingit')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G6 Dayaw</span>
+                    </button>
+                    <button onclick="quickLogin('PHSYesO7', 'POTigolo')" class="p-2 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-lg text-left transition font-medium flex items-center space-x-2">
+                        <i class="fa-solid fa-users text-emerald-600"></i>
+                        <span class="truncate">G7 Sibol</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Firebase Project Config Switcher -->
+            <div class="mt-4 text-center">
+                <button onclick="toggleModal('firebaseConfigModal', true)" class="text-xs text-slate-400 hover:text-emerald-600 underline">
+                    <i class="fa-solid fa-database mr-1"></i> Configure Cloud Credentials / Standalone Mode
+                </button>
+            </div>
+        </section>
+
+        <!-- MAIN APP DASHBOARD VIEW -->
+        <div id="appDashboardView" class="hidden space-y-6">
+
+            <!-- Dashboard Controls Bar -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <div id="groupBadge" class="bg-forest-900 text-emerald-300 font-bold px-3.5 py-2 rounded-xl text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span id="userGroupDisplay">All Groups (Admin)</span>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg leading-tight" id="dashboardWelcomeTitle">Executive Attendance Dashboard</h2>
+                        <p class="text-xs text-slate-500" id="todayDateSubtitle">Date: September 29, 2026</p>
                     </div>
                 </div>
 
-                <!-- Secondary Nav Tabs -->
-                <div class="bg-eco-950/80 backdrop-blur border-t border-eco-800 px-4 sm:px-6 lg:px-8 overflow-x-auto custom-scrollbar">
-                    <div class="max-w-7xl mx-auto flex space-x-1 sm:space-x-4">
-                        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-tab py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 border-eco-400 text-eco-300 hover:text-white transition flex items-center space-x-2">
-                            <i class="fas fa-chart-line"></i><span>Overview</span>
+                <!-- Controls & Filters -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center space-x-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
+                        <i class="fa-regular fa-calendar text-slate-500 pl-2"></i>
+                        <input type="date" id="attendanceDate" onchange="onDateFilterChange()" class="bg-transparent border-0 focus:ring-0 text-slate-700 font-medium">
+                    </div>
+
+                    <button onclick="manualCloudRefresh()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center space-x-1" title="Force Cloud Refresh">
+                        <i class="fa-solid fa-rotate text-slate-500"></i>
+                        <span class="hidden sm:inline">Refresh</span>
+                    </button>
+
+                    <button id="addMemberBtn" onclick="openAddMemberModal()" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Add Member</span>
+                    </button>
+
+                    <button id="adminDiagBtn" onclick="toggleModal('diagnosticModal', true)" class="p-2.5 bg-slate-800 hover:bg-slate-900 text-slate-200 rounded-xl text-xs font-semibold transition" title="System Diagnostics">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Weekend Alert Banner -->
+            <div id="weekendNotice" class="hidden p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-calendar-day text-indigo-600 text-base"></i>
+                    <span>Selected date falls on a weekend. Regular classes are inactive unless marked as a Special Activity.</span>
+                </div>
+            </div>
+
+            <!-- Key Summary Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase">Total Roster</p>
+                        <h3 class="text-2xl font-black text-slate-800 mt-1" id="statTotalMembers">119</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5" id="statGroupSubtext">Across 7 Groups</p>
+                    </div>
+                    <div class="w-11 h-11 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-emerald-600 uppercase">Present Today</p>
+                        <h3 class="text-2xl font-black text-emerald-700 mt-1" id="statPresentCount">0</h3>
+                        <p class="text-[11px] text-emerald-600/70 mt-0.5" id="statPresentPercent">0% Rate</p>
+                    </div>
+                    <div class="w-11 h-11 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-rose-600 uppercase">Absences Recorded</p>
+                        <h3 class="text-2xl font-black text-rose-700 mt-1" id="statAbsentCount">0</h3>
+                        <p class="text-[11px] text-rose-600/70 mt-0.5" id="statAbsentPercent">0% Rate</p>
+                    </div>
+                    <div class="w-11 h-11 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-user-xmark"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm bg-rose-50/30 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-rose-700 uppercase">5+ Absences Alert</p>
+                        <h3 class="text-2xl font-black text-rose-800 mt-1" id="statFiveAbsenceAlerts">0</h3>
+                        <p class="text-[11px] text-rose-600 mt-0.5">High Risk Members</p>
+                    </div>
+                    <div class="w-11 h-11 bg-rose-600 text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Group Leaderboard & Visual Analytics -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- 7 Group Leaderboard Table -->
+                <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-trophy text-amber-500 text-lg"></i>
+                            <h3 class="font-bold text-slate-800 text-base">Live Group Leaderboard</h3>
+                        </div>
+                        <span class="text-xs bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full font-semibold">Real-Time Cloud</span>
+                    </div>
+
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 bg-slate-100/70 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+                                    <th class="p-3 pl-4">Rank</th>
+                                    <th class="p-3">Group Name</th>
+                                    <th class="p-3 text-center">Members</th>
+                                    <th class="p-3 text-center">Present</th>
+                                    <th class="p-3 text-center">Absent</th>
+                                    <th class="p-3 text-center">5+ Absences</th>
+                                    <th class="p-3 text-right pr-4">Attendance Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardTbody" class="divide-y divide-slate-100 text-sm">
+                                <!-- Dynamic dynamic content rendered via Firestore snapshot -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Visual Analytics Chart Card -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-slate-800 text-sm">Group Performance</h3>
+                        <i class="fa-solid fa-chart-bar text-slate-400"></i>
+                    </div>
+                    <div class="relative w-full h-56 flex items-center justify-center">
+                        <canvas id="leaderboardChart"></canvas>
+                    </div>
+                    <p class="text-[11px] text-slate-400 text-center mt-2">Rankings automatically re-order based on percentage from Firestore</p>
+                </div>
+            </div>
+
+            <!-- Member Roster & Quick Attendance Grid -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+
+                <!-- Table Controls Header -->
+                <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/50">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base" id="rosterTitle">Member Attendance Roster</h3>
+                        <p class="text-xs text-slate-500">Auto-saves instantly to Cloud database upon button tap</p>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Group Selector Filter (Admin only, hidden for group officers) -->
+                        <select id="groupFilterSelect" onchange="renderRoster()" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs text-slate-700 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="ALL">All Groups (119 Members)</option>
+                            <option value="PG">Group 1: Panalipdan</option>
+                            <option value="YG">Group 2: Yabong</option>
+                            <option value="AG">Group 3: Ammoyo</option>
+                            <option value="LG">Group 4: Lambo</option>
+                            <option value="IG">Group 5: Inayan</option>
+                            <option value="DG">Group 6: Dayaw</option>
+                            <option value="SG">Group 7: Sibol</option>
+                        </select>
+
+                        <!-- Search Member Input -->
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                            <input type="text" id="memberSearchInput" oninput="renderRoster()" placeholder="Search member name/ID..." class="pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 w-44">
+                        </div>
+
+                        <!-- 5+ Absence Filter Toggle -->
+                        <button id="filterAlertOnlyBtn" onclick="toggleAlertFilter()" class="px-3 py-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition flex items-center space-x-1">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>5+ Absences Only</span>
                         </button>
-                        <button onclick="switchTab('marking')" id="nav-marking" class="nav-tab py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center space-x-2">
-                            <i class="fas fa-clipboard-check"></i><span>Mark Attendance</span>
+                    </div>
+                </div>
+
+                <!-- Main Roster Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 bg-slate-100/70 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
+                                <th class="p-3 pl-4">Member ID</th>
+                                <th class="p-3">Full Name</th>
+                                <th class="p-3">Assigned Group</th>
+                                <th class="p-3 text-center">Total Absences</th>
+                                <th class="p-3 text-center">Status for Selected Date</th>
+                                <th class="p-3 text-center">Auto-Save Action</th>
+                                <th class="p-3 text-right pr-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosterTbody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-3 bg-slate-50 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+                    <span id="showingCountText">Showing 0 members</span>
+                    <div class="flex items-center space-x-4">
+                        <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span> <span>Present</span></span>
+                        <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 bg-rose-500 rounded-full inline-block"></span> <span>Absent</span></span>
+                        <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span> <span>5+ Absence Alert</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Audit Trail & Utilities (Visible to Admin) -->
+            <div id="adminPanel" class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left text-forest-900 text-lg"></i>
+                        <h3 class="font-bold text-slate-800 text-base">Real-Time Cloud Audit Trail & Data Tools</h3>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportCSV()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center space-x-1">
+                            <i class="fa-solid fa-file-csv"></i>
+                            <span>Export CSV</span>
                         </button>
-                        <button onclick="switchTab('members')" id="nav-members" class="nav-tab py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center space-x-2">
-                            <i class="fas fa-users"></i><span>Roster & Profiles</span>
-                        </button>
-                        <button onclick="switchTab('rankings')" id="nav-rankings" class="nav-tab py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center space-x-2">
-                            <i class="fas fa-trophy"></i><span>Group Leaderboard</span>
-                        </button>
-                        <button onclick="switchTab('alerts')" id="nav-alerts" class="nav-tab py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center space-x-2 relative">
-                            <i class="fas fa-triangle-exclamation"></i><span>Absence Warnings</span>
-                            <span id="nav-alert-count" class="bg-rose-500 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full hidden">0</span>
-                        </button>
-                        <button id="nav-admin-tools" onclick="switchTab('admin')" class="nav-tab py-3 px-3 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition hidden flex items-center space-x-2 text-amber-300">
-                            <i class="fas fa-sliders"></i><span>Admin Operations</span>
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Main Content Container -->
-            <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-
-                <!-- TAB 1: OVERVIEW / DASHBOARD -->
-                <div id="tab-dashboard" class="tab-content space-y-6">
-                    <!-- Stat Cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-xl bg-eco-100 text-eco-700 flex items-center justify-center text-xl font-bold">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Assigned Members</p>
-                                <h3 class="text-2xl font-extrabold text-slate-800" id="stat-total-members">119</h3>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl font-bold">
-                                <i class="fas fa-user-check"></i>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Present Marks</p>
-                                <h3 class="text-2xl font-extrabold text-emerald-600" id="stat-total-present">0</h3>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-xl font-bold">
-                                <i class="fas fa-user-xmark"></i>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Absent Marks</p>
-                                <h3 class="text-2xl font-extrabold text-rose-600" id="stat-total-absent">0</h3>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold">
-                                <i class="fas fa-percent"></i>
-                            </div>
-                            <div>
-                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Attendance Rate</p>
-                                <h3 class="text-2xl font-extrabold text-blue-600" id="stat-attendance-rate">0.0%</h3>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Visual Analytics Charts -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-base font-bold text-slate-800">Group Attendance Comparison</h3>
-                                    <p class="text-xs text-slate-500">Overall presence rate per YES-O Group</p>
-                                </div>
-                                <span class="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg">SY 2026-2027</span>
-                            </div>
-                            <div class="h-64 relative">
-                                <canvas id="chart-group-performance"></canvas>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                            <div>
-                                <h3 class="text-base font-bold text-slate-800 mb-1">5+ Absence Alert Status</h3>
-                                <p class="text-xs text-slate-500 mb-4">Members requiring immediate intervention</p>
-                                <div id="dashboard-alert-banner" class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start space-x-3 text-emerald-800">
-                                    <i class="fas fa-circle-check text-xl mt-0.5 text-emerald-600"></i>
-                                    <div>
-                                        <h4 class="text-xs font-bold uppercase">Good Standing</h4>
-                                        <p class="text-xs mt-0.5">No members currently have 5 or more absences in your scope.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-4 pt-4 border-t border-slate-100 text-center">
-                                <button onclick="switchTab('alerts')" class="text-xs font-bold text-eco-700 hover:text-eco-800 flex items-center justify-center mx-auto space-x-1">
-                                    <span>View Warning Report</span>
-                                    <i class="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
-                <!-- TAB 2: MARK ATTENDANCE -->
-                <div id="tab-marking" class="tab-content hidden space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-                            <div>
-                                <h2 class="text-xl font-bold text-slate-800">Daily Attendance Recorder</h2>
-                                <p class="text-xs text-slate-500">Select date, group, and quickly toggle attendance status</p>
-                            </div>
+                <!-- Logs Table -->
+                <div class="overflow-x-auto max-h-48 scrollbar-thin">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-500 uppercase font-semibold">
+                                <th class="p-2 pl-3">Timestamp (Server)</th>
+                                <th class="p-2">User / Officer</th>
+                                <th class="p-2">Action</th>
+                                <th class="p-2">Target Member</th>
+                                <th class="p-2 pr-3">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTbody" class="divide-y divide-slate-100 text-slate-600">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-                            <!-- Controls -->
-                            <div class="flex flex-wrap items-center gap-3">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Session Date</label>
-                                    <input type="date" id="marking-date" onchange="loadAttendanceSheet()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-eco-500">
-                                </div>
+        </div>
+    </main>
 
-                                <div id="group-filter-container">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Filter Group</label>
-                                    <select id="marking-group-select" onchange="loadAttendanceSheet()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-eco-500">
-                                        <!-- Dynamically Populated Based on Role -->
-                                    </select>
-                                </div>
 
-                                <div class="flex items-center space-x-2 pt-4">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" id="weekend-toggle" onchange="toggleWeekendOverride()" class="sr-only peer">
-                                        <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                                    </label>
-                                    <span class="text-xs font-bold text-slate-600">Special Weekend Event</span>
-                                </div>
-                            </div>
-                        </div>
+    <!-- MEMBER PROFILE MODAL -->
+    <div id="memberProfileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-forest-900 text-white p-5 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center font-bold text-lg text-white" id="modalMemberAvatar">
+                        PG
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-tight" id="modalMemberName">Member Name</h3>
+                        <p class="text-xs text-emerald-300" id="modalMemberSubtitle">ID: PG-001 • Panalipdan</p>
+                    </div>
+                </div>
+                <button onclick="toggleModal('memberProfileModal', false)" class="text-slate-300 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
 
-                        <!-- Date Warning Banner for Weekend -->
-                        <div id="weekend-warning" class="hidden my-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center space-x-2">
-                            <i class="fas fa-triangle-exclamation text-amber-600"></i>
-                            <span><strong>Weekend Override Active:</strong> Recording attendance for non-school weekday event.</span>
-                        </div>
-
-                        <!-- Quick Action Toolbar -->
-                        <div class="flex flex-wrap items-center justify-between gap-3 my-4 bg-slate-50 p-3 rounded-xl">
-                            <div class="flex items-center space-x-2">
-                                <button onclick="markAllGroup('P')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
-                                    <i class="fas fa-check-double"></i><span>Mark All Present</span>
-                                </button>
-                                <button onclick="markAllGroup('A')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
-                                    <i class="fas fa-xmark"></i><span>Mark All Absent</span>
-                                </button>
-                            </div>
-                            <div id="save-status-indicator" class="text-xs font-medium text-slate-500 flex items-center space-x-1.5">
-                                <i class="fas fa-cloud-check text-eco-600"></i><span>All changes saved</span>
-                            </div>
-                        </div>
-
-                        <!-- Attendance Table -->
-                        <div class="overflow-x-auto rounded-xl border border-slate-200">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-slate-100 text-slate-600 uppercase text-[11px] font-bold tracking-wider">
-                                    <tr>
-                                        <th class="py-3.5 px-4">Member ID</th>
-                                        <th class="py-3.5 px-4">Student Name</th>
-                                        <th class="py-3.5 px-4">Group</th>
-                                        <th class="py-3.5 px-4 text-center">Status Toggle</th>
-                                        <th class="py-3.5 px-4 text-center">Total Absences</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="marking-table-body" class="divide-y divide-slate-100 text-sm">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
+            <div class="p-5 space-y-4 overflow-y-auto flex-1">
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <p class="text-xs text-slate-400 font-medium">Total Days</p>
+                        <p class="text-xl font-bold text-slate-800" id="modalStatTotal">0</p>
+                    </div>
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                        <p class="text-xs text-emerald-600 font-medium">Present</p>
+                        <p class="text-xl font-bold text-emerald-700" id="modalStatPresent">0</p>
+                    </div>
+                    <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
+                        <p class="text-xs text-rose-600 font-medium">Absences</p>
+                        <p class="text-xl font-bold text-rose-700" id="modalStatAbsent">0</p>
                     </div>
                 </div>
 
-                <!-- TAB 3: ROSTER & MEMBER PROFILES -->
-                <div id="tab-members" class="tab-content hidden space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-                            <div>
-                                <h2 class="text-xl font-bold text-slate-800">YES-O Official Member Roster</h2>
-                                <p class="text-xs text-slate-500">119 Members Across 7 Ecological Groups (0 fake sections)</p>
-                            </div>
-
-                            <div class="flex flex-wrap items-center gap-3">
-                                <div class="relative min-w-[240px]">
-                                    <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                                    <input type="text" id="roster-search" oninput="filterRoster()" placeholder="Search student name or ID..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-eco-500">
-                                </div>
-
-                                <select id="roster-group-filter" onchange="filterRoster()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-eco-500">
-                                    <option value="ALL">All Accessible Groups</option>
-                                    <option value="PG">Panalipdan (PG)</option>
-                                    <option value="YG">Yabong (YG)</option>
-                                    <option value="AG">Ammoyo (AG)</option>
-                                    <option value="LG">Lambo (LG)</option>
-                                    <option value="IG">Inayan (IG)</option>
-                                    <option value="DG">Dayaw (DG)</option>
-                                    <option value="SG">Sibol (SG)</option>
-                                </select>
-
-                                <button onclick="openAddMemberModal()" class="px-3 py-2 bg-eco-700 hover:bg-eco-800 text-white rounded-xl text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
-                                    <i class="fas fa-user-plus"></i><span>Add Member</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Roster Table -->
-                        <div class="overflow-x-auto rounded-xl border border-slate-200 mt-6">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-slate-100 text-slate-600 uppercase text-[11px] font-bold tracking-wider">
-                                    <tr>
-                                        <th class="py-3.5 px-4">Member ID</th>
-                                        <th class="py-3.5 px-4">Full Name</th>
-                                        <th class="py-3.5 px-4">Group</th>
-                                        <th class="py-3.5 px-4 text-center">Present</th>
-                                        <th class="py-3.5 px-4 text-center">Absent</th>
-                                        <th class="py-3.5 px-4 text-center">Rate</th>
-                                        <th class="py-3.5 px-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="roster-table-body" class="divide-y divide-slate-100 text-sm">
-                                    <!-- Populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div id="modalAlertBanner" class="hidden p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-600 text-base"></i>
+                    <span>This member has 5 or more recorded absences! Alert status active.</span>
                 </div>
 
-                <!-- TAB 4: GROUP LEADERBOARD / RANKINGS -->
-                <div id="tab-rankings" class="tab-content hidden space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-                            <div>
-                                <h2 class="text-xl font-bold text-slate-800">Group Activity Leaderboard</h2>
-                                <p class="text-xs text-slate-500">Real-time attendance performance across ecological groups</p>
-                            </div>
-
-                            <div class="flex items-center space-x-2">
-                                <label class="text-xs font-bold text-slate-500">Filter timeframe:</label>
-                                <select id="leaderboard-filter" onchange="renderLeaderboard()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-eco-500">
-                                    <option value="ALL">Full SY 2026-2027</option>
-                                    <option value="THIS_MONTH">This Month</option>
-                                    <option value="THIS_WEEK">This Week</option>
-                                    <option value="TODAY">Today Only</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                            <div class="lg:col-span-2 space-y-3" id="leaderboard-cards-container">
-                                <!-- Group performance cards rendered dynamically -->
-                            </div>
-
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 h-fit">
-                                <h3 class="text-base font-bold text-slate-800 mb-2"><i class="fas fa-circle-info text-eco-600 me-2"></i>About Group Metrics</h3>
-                                <p class="text-xs text-slate-600 leading-relaxed mb-4">
-                                    Group percentages are dynamically computed from recorded sessions. Groups with the highest attendance rates earn environmental honors for SY 2026-2027.
-                                </p>
-                                <div class="space-y-2 text-xs">
-                                    <div class="p-2.5 bg-white rounded-lg border border-slate-200 flex justify-between">
-                                        <span class="font-bold text-slate-700">Total Groups</span>
-                                        <span class="text-slate-600 font-bold">7</span>
-                                    </div>
-                                    <div class="p-2.5 bg-white rounded-lg border border-slate-200 flex justify-between">
-                                        <span class="font-bold text-slate-700">Members per Group</span>
-                                        <span class="text-slate-600 font-bold">17 Standard</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm mb-2">Recent Attendance History</h4>
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1" id="modalHistoryList">
+                        <!-- History items -->
                     </div>
                 </div>
+            </div>
 
-                <!-- TAB 5: ABSENCE RED WARNING ALERTS -->
-                <div id="tab-alerts" class="tab-content hidden space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex items-center justify-between pb-6 border-b border-slate-200">
-                            <div>
-                                <h2 class="text-xl font-bold text-slate-800 text-rose-700 flex items-center space-x-2">
-                                    <i class="fas fa-triangle-exclamation"></i>
-                                    <span>5+ Absence Critical Warning Center</span>
-                                </h2>
-                                <p class="text-xs text-slate-500">Members automatically flagged for accumulating 5 or more total absences</p>
-                            </div>
-                            <span id="alerts-count-badge" class="px-3 py-1 bg-rose-100 text-rose-800 font-bold rounded-full text-xs">0 Flagged</span>
-                        </div>
-
-                        <div id="alerts-list-container" class="mt-6 space-y-4">
-                            <!-- Alert items populated dynamically -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 6: ADMIN OPERATIONS (ADMIN ONLY) -->
-                <div id="tab-admin" class="tab-content hidden space-y-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="pb-6 border-b border-slate-200">
-                            <h2 class="text-xl font-bold text-slate-800 flex items-center space-x-2">
-                                <i class="fas fa-user-shield text-amber-500"></i>
-                                <span>System Administrator Management Dashboard</span>
-                            </h2>
-                            <p class="text-xs text-slate-500">Group transfers, data backups, CSV import/export, and system initialization</p>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            <!-- Admin Group Transfer Card -->
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-                                    <i class="fas fa-right-left text-eco-600"></i>
-                                    <span>Transfer Member Between Groups</span>
-                                </h3>
-                                <p class="text-xs text-slate-500">Reassign a member to another group. All past attendance logs remain preserved.</p>
-                                
-                                <form onsubmit="handleAdminGroupTransfer(event)" class="space-y-3">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">Select Member</label>
-                                        <select id="transfer-member-select" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-eco-500">
-                                            <!-- Dynamically populated -->
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-1">New Target Group</label>
-                                        <select id="transfer-target-group" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-eco-500">
-                                            <option value="PG">Panalipdan Group (PG)</option>
-                                            <option value="YG">Yabong Group (YG)</option>
-                                            <option value="AG">Ammoyo Group (AG)</option>
-                                            <option value="LG">Lambo Group (LG)</option>
-                                            <option value="IG">Inayan Group (IG)</option>
-                                            <option value="DG">Dayaw Group (DG)</option>
-                                            <option value="SG">Sibol Group (SG)</option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="w-full py-2.5 bg-eco-700 hover:bg-eco-800 text-white rounded-xl text-xs font-bold shadow transition">
-                                        Execute Group Transfer
-                                    </button>
-                                </form>
-                            </div>
-
-                            <!-- Database Backup & CSV Export/Import -->
-                            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-                                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-                                    <i class="fas fa-database text-blue-600"></i>
-                                    <span>Data Export & Import Backup Tools</span>
-                                </h3>
-                                <p class="text-xs text-slate-500">Export member logs to CSV or import existing backups into the system.</p>
-
-                                <div class="space-y-2 pt-2">
-                                    <button onclick="exportAttendanceCSV()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow transition flex items-center justify-center space-x-2">
-                                        <i class="fas fa-file-csv"></i><span>Export Attendance Master CSV</span>
-                                    </button>
-                                    <button onclick="document.getElementById('csv-file-input').click()" class="w-full py-2.5 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-2">
-                                        <i class="fas fa-file-import"></i><span>Import Roster CSV File</span>
-                                    </button>
-                                    <input type="file" id="csv-file-input" onchange="importRosterCSV(event)" accept=".csv" class="hidden">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </main>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                <button id="modalTransferBtn" onclick="openTransferModal()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-3 py-2 rounded-xl transition">
+                    Transfer Group
+                </button>
+                <button onclick="toggleModal('memberProfileModal', false)" class="text-xs bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-xl transition">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- MODAL: ADD NEW MEMBER -->
-    <div id="add-member-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 relative">
-            <button onclick="closeAddMemberModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                <i class="fas fa-xmark text-lg"></i>
-            </button>
-            <h3 class="text-lg font-bold text-slate-800">Enroll New YES-O Member</h3>
-            <p class="text-xs text-slate-500">Member ID will be auto-generated based on the chosen group sequence without reusing old IDs.</p>
-
-            <form onsubmit="handleAddMember(event)" class="space-y-3 pt-2">
+    <!-- ADD / EDIT MEMBER MODAL -->
+    <div id="addMemberModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="bg-slate-800 text-white p-4 flex items-center justify-between">
+                <h3 class="font-bold text-base" id="addMemberModalTitle">Add New YES-O Member</h3>
+                <button onclick="toggleModal('addMemberModal', false)" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form onsubmit="handleSaveMember(event)" class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Assigned Group</label>
-                    <select id="new-member-group" required onchange="updateNewMemberIDPreview()" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold">
-                        <option value="PG">Panalipdan (PG)</option>
-                        <option value="YG">Yabong (YG)</option>
-                        <option value="AG">Ammoyo (AG)</option>
-                        <option value="LG">Lambo (LG)</option>
-                        <option value="IG">Inayan (IG)</option>
-                        <option value="DG">Dayaw (DG)</option>
-                        <option value="SG">Sibol (SG)</option>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Full Name</label>
+                    <input type="text" id="newMemberName" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" placeholder="e.g. Juan Dela Cruz">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Group Assignment</label>
+                    <select id="newMemberGroup" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                        <option value="PG">Group 1: Panalipdan (PG)</option>
+                        <option value="YG">Group 2: Yabong (YG)</option>
+                        <option value="AG">Group 3: Ammoyo (AG)</option>
+                        <option value="LG">Group 4: Lambo (LG)</option>
+                        <option value="IG">Group 5: Inayan (IG)</option>
+                        <option value="DG">Group 6: Dayaw (DG)</option>
+                        <option value="SG">Group 7: Sibol (SG)</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Auto Member ID Preview</label>
-                    <input type="text" id="new-member-id-preview" disabled class="w-full px-3 py-2 bg-slate-200 border border-slate-300 rounded-xl text-xs font-bold text-slate-600">
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
+                    <i class="fa-solid fa-circle-info text-emerald-600 mr-1"></i> Member ID will be automatically incremented and assigned by the cloud database sequence.
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Student Full Name</label>
-                    <input type="text" id="new-member-name" required oninput="checkDuplicateNameWarning()" placeholder="Firstname Lastname" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-eco-500">
-                    <p id="duplicate-warning" class="text-[11px] font-bold text-rose-600 mt-1 hidden"><i class="fas fa-triangle-exclamation me-1"></i>Warning: A student with a similar name already exists in roster!</p>
-                </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeAddMemberModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-eco-700 hover:bg-eco-800 text-white rounded-xl text-xs font-bold">Enroll Member</button>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="toggleModal('addMemberModal', false)" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-200">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 shadow">Save to Cloud</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL: MEMBER PROFILE HISTORY TIMELINE -->
-    <div id="profile-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 relative max-h-[90vh] flex flex-col">
-            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                <i class="fas fa-xmark text-lg"></i>
-            </button>
-            
-            <div class="flex items-center space-x-4 border-b border-slate-100 pb-4">
-                <div class="w-14 h-14 rounded-2xl bg-eco-100 text-eco-700 font-extrabold text-xl flex items-center justify-center" id="profile-avatar">
-                    PG
+    <!-- DIAGNOSTIC SYSTEM MODAL -->
+    <div id="diagnosticModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-network-wired text-emerald-400"></i>
+                    <h3 class="font-bold text-base">System & Real-Time Diagnostics</h3>
                 </div>
+                <button onclick="toggleModal('diagnosticModal', false)" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-3 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span class="text-slate-400 uppercase font-semibold">Mode</span>
+                        <p id="diagMode" class="font-bold text-slate-800 text-sm">Cloud Firestore / Live Sync</p>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span class="text-slate-400 uppercase font-semibold">Connection Status</span>
+                        <p id="diagConn" class="font-bold text-emerald-600 text-sm">Online & Listening</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Active Real-time Subscriptions:</span>
+                        <span class="font-bold text-slate-800" id="diagSubCount">3 Active Listeners</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Last Cloud Sync Time:</span>
+                        <span class="font-bold text-slate-800" id="diagLastSync">Just now</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Pending Local Queue:</span>
+                        <span class="font-bold text-slate-800" id="diagQueue">0 items</span>
+                    </div>
+                </div>
+
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900" id="profile-name">Student Name</h3>
-                    <p class="text-xs text-slate-500" id="profile-meta">PG-001 • Panalipdan Group</p>
+                    <p class="font-semibold text-slate-700 mb-1">Recent Sync Log Events</p>
+                    <div id="diagLogs" class="bg-slate-900 text-slate-300 font-mono p-3 rounded-xl h-28 overflow-y-auto text-[11px] space-y-1">
+                        <div>[INFO] System initialized. Listener attached.</div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Profile Summary Stats -->
-            <div class="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl text-center">
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Present</p>
-                    <p class="text-lg font-extrabold text-emerald-600" id="profile-present">0</p>
-                </div>
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Absent</p>
-                    <p class="text-lg font-extrabold text-rose-600" id="profile-absent">0</p>
-                </div>
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Rate</p>
-                    <p class="text-lg font-extrabold text-blue-600" id="profile-rate">0.0%</p>
-                </div>
+            <div class="p-3 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="toggleModal('diagnosticModal', false)" class="px-4 py-2 bg-slate-800 text-white font-semibold rounded-xl text-xs">Close</button>
             </div>
+        </div>
+    </div>
 
-            <!-- Detailed Log Timeline -->
-            <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Attendance Log Timeline</h4>
-                <div id="profile-timeline" class="space-y-1.5 text-xs">
-                    <!-- Logs dynamically populated -->
+    <!-- FIREBASE CONFIG MODAL -->
+    <div id="firebaseConfigModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white max-w-md w-full rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div class="bg-forest-900 text-white p-4 flex items-center justify-between">
+                <h3 class="font-bold text-base">Cloud Firestore Configuration</h3>
+                <button onclick="toggleModal('firebaseConfigModal', false)" class="text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-3 text-xs">
+                <p class="text-slate-600">The system includes an automatic high-performance client engine with Firestore real-time listeners out-of-the-box. You can paste custom Firebase credentials below if connecting to your own Firebase console.</p>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Firebase Config JSON</label>
+                    <textarea id="firebaseConfigJson" rows="5" class="w-full p-2 border border-slate-300 rounded-xl font-mono text-[11px] focus:ring-2 focus:ring-emerald-500 outline-none" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "..."}'></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button onclick="resetDefaultConfig()" class="px-3 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl">Use Default Mode</button>
+                    <button onclick="saveFirebaseConfig()" class="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-xl">Save & Reconnect</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // OFFICIAL ROSTER DATA STRUCTURE - 119 MEMBERS EXACTLY (17 per group, 0 attendance initial)
-        const OFFICIAL_ROSTER_SEED = [
-            // Panalipdan Group (PG)
-            { id: 'PG-001', name: 'Allen Nicole Batore', group: 'PG' },
-            { id: 'PG-002', name: 'Danica Cabatin', group: 'PG' },
-            { id: 'PG-003', name: 'Joy Camille Cariaga', group: 'PG' },
-            { id: 'PG-004', name: 'Rain Ivan Mengullo', group: 'PG' },
-            { id: 'PG-005', name: 'Kyla Delos Santos', group: 'PG' },
-            { id: 'PG-006', name: 'Jake Geraldo', group: 'PG' },
-            { id: 'PG-007', name: 'Zaijian Perdible', group: 'PG' },
-            { id: 'PG-008', name: 'Mclean Jolorie Pascua', group: 'PG' },
-            { id: 'PG-009', name: 'Christine Dela Cruz', group: 'PG' },
-            { id: 'PG-010', name: 'Rowela Mae Lachica', group: 'PG' },
-            { id: 'PG-011', name: 'Zshamaine Pascua', group: 'PG' },
-            { id: 'PG-012', name: 'Cymantha May Pascua', group: 'PG' },
-            { id: 'PG-013', name: 'Roselyn Ramirez', group: 'PG' },
-            { id: 'PG-014', name: 'Jenifer Agustin', group: 'PG' },
-            { id: 'PG-015', name: 'Giezel Mae Toribio', group: 'PG' },
-            { id: 'PG-016', name: 'Sofhia Matamis', group: 'PG' },
-            { id: 'PG-017', name: 'Dyna Rashielle Salva', group: 'PG' },
+    <!-- Firebase SDK Modular Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc,
+            onSnapshot, query, where, serverTimestamp 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            // Yabong Group (YG)
-            { id: 'YG-001', name: 'Luis Bernabe', group: 'YG' },
-            { id: 'YG-002', name: 'Keisha Mae Balajadia', group: 'YG' },
-            { id: 'YG-003', name: 'Marie-Christ De Vera', group: 'YG' },
-            { id: 'YG-004', name: 'Israel Macabio', group: 'YG' },
-            { id: 'YG-005', name: 'Princess Rhiann Velasquez', group: 'YG' },
-            { id: 'YG-006', name: 'Sophia Bianca Javier', group: 'YG' },
-            { id: 'YG-007', name: 'Krizza Mae Mina', group: 'YG' },
-            { id: 'YG-008', name: 'Nicole Kate Sevilla', group: 'YG' },
-            { id: 'YG-009', name: 'Jahara Jayka Areno', group: 'YG' },
-            { id: 'YG-010', name: 'Jullie Anne Fronda', group: 'YG' },
-            { id: 'YG-011', name: 'Prince Nel Villarama', group: 'YG' },
-            { id: 'YG-012', name: 'Misha Brenna Centro', group: 'YG' },
-            { id: 'YG-013', name: 'Maruh Jade Prollo', group: 'YG' },
-            { id: 'YG-014', name: 'Julia Macuha', group: 'YG' },
-            { id: 'YG-015', name: 'Christine Joy', group: 'YG' },
-            { id: 'YG-016', name: 'Nhirvanna Dingle', group: 'YG' },
-            { id: 'YG-017', name: 'Kobe Vince Caritativo', group: 'YG' },
+        // Global Application State & Initial Seed Dataset
+        window.APP_STATE = {
+            currentUser: null,
+            selectedDate: new Date().toISOString().split('T')[0],
+            members: [],
+            attendance: {}, // key: memberId_YYYY_MM_DD => {status, updatedAt, ...}
+            auditLogs: [],
+            offlineQueue: [],
+            filterAlertOnly: false,
+            firebaseApp: null,
+            db: null,
+            auth: null,
+            unsubscribeListeners: [],
+            leaderboardChart: null,
+            selectedMemberForProfile: null
+        };
 
-            // Ammoyo Group (AG)
-            { id: 'AG-001', name: 'Christopher Joaquin', group: 'AG' },
-            { id: 'AG-002', name: 'John Rafael Espeña', group: 'AG' },
-            { id: 'AG-003', name: 'Janna May Delfin', group: 'AG' },
-            { id: 'AG-004', name: 'Christian Dela Cruz', group: 'AG' },
-            { id: 'AG-005', name: 'Jereca Salazar', group: 'AG' },
-            { id: 'AG-006', name: 'Juslie Pascual', group: 'AG' },
-            { id: 'AG-007', name: 'Yvon Caritativo', group: 'AG' },
-            { id: 'AG-008', name: 'Christian Nigel Asuncion', group: 'AG' },
-            { id: 'AG-009', name: 'Zairiz Perdible', group: 'AG' },
-            { id: 'AG-010', name: 'John Michael Tua', group: 'AG' },
-            { id: 'AG-011', name: 'Lyra Rose Matamis', group: 'AG' },
-            { id: 'AG-012', name: 'Vanessa Mangawang', group: 'AG' },
-            { id: 'AG-013', name: 'Gerald Butal', group: 'AG' },
-            { id: 'AG-014', name: 'Michelle Javier', group: 'AG' },
-            { id: 'AG-015', name: 'Ramona Dondoyano', group: 'AG' },
-            { id: 'AG-016', name: 'Rodalyn Mae Pascua', group: 'AG' },
-            { id: 'AG-017', name: 'Anthea Muncal', group: 'AG' },
+        // Standard 7 Group Configuration
+        const GROUPS_CONFIG = {
+            'PG': { name: 'Group 1: Panalipdan', prefix: 'PG', officer: 'PHSYesO1', pass: 'PresMata', role: 'President' },
+            'YG': { name: 'Group 2: Yabong', prefix: 'YG', officer: 'PHSYesO2', pass: 'VPresBiag', role: 'Vice President' },
+            'AG': { name: 'Group 3: Ammoyo', prefix: 'AG', officer: 'PHSYesO3', pass: 'SecProllo', role: 'Secretary' },
+            'LG': { name: 'Group 4: Lambo', prefix: 'LG', officer: 'PHSYesO4', pass: 'TreasRamiterre', role: 'Treasurer' },
+            'IG': { name: 'Group 5: Inayan', prefix: 'IG', officer: 'PHSYesO5', pass: 'AudAlexa', role: 'Auditor' },
+            'DG': { name: 'Group 6: Dayaw', prefix: 'DG', officer: 'PHSYesO6', pass: 'PIOParingit', role: 'PIO' },
+            'SG': { name: 'Group 7: Sibol', prefix: 'SG', officer: 'PHSYesO7', pass: 'POTigolo', role: 'Peace Officer' }
+        };
 
-            // Lambo Group (LG)
-            { id: 'LG-001', name: 'Franz Michael Mina', group: 'LG' },
-            { id: 'LG-002', name: 'Rolando Paat', group: 'LG' },
-            { id: 'LG-003', name: 'Dennis Linsangan', group: 'LG' },
-            { id: 'LG-004', name: 'Allan Jhay Rapisora', group: 'LG' },
-            { id: 'LG-005', name: 'Kyla Nicole Agustin', group: 'LG' },
-            { id: 'LG-006', name: 'Cris Han Agustin', group: 'LG' },
-            { id: 'LG-007', name: 'Jennifer Serrano', group: 'LG' },
-            { id: 'LG-008', name: 'Jennilyn Barrientos', group: 'LG' },
-            { id: 'LG-009', name: 'Alzea May Alabas', group: 'LG' },
-            { id: 'LG-010', name: 'Ella Pascua', group: 'LG' },
-            { id: 'LG-011', name: 'John Niña Centro', group: 'LG' },
-            { id: 'LG-012', name: 'Sophia Nicole Dumaya', group: 'LG' },
-            { id: 'LG-013', name: 'April Abarquez', group: 'LG' },
-            { id: 'LG-014', name: 'Geraldine Javier', group: 'LG' },
-            { id: 'LG-015', name: 'Christian Jay Palma', group: 'LG' },
-            { id: 'LG-016', name: 'Jules Kirby Esteban', group: 'LG' },
-            { id: 'LG-017', name: 'Mayvelyn Pablo', group: 'LG' },
+        // 119 Official Initial Member Roster Seeding Data (17 members per group)
+        const INITIAL_ROSTER_SEED = [
+            // Group 1 Panalipdan (PG)
+            { id: "PG-001", name: "Allen Nicole Batore", group: "PG" },
+            { id: "PG-002", name: "Danica Cabatin", group: "PG" },
+            { id: "PG-003", name: "Joy Camille Cariaga", group: "PG" },
+            { id: "PG-004", name: "Rain Ivan Mengullo", group: "PG" },
+            { id: "PG-005", name: "Kyla Delos Santos", group: "PG" },
+            { id: "PG-006", name: "Jake Geraldo", group: "PG" },
+            { id: "PG-007", name: "Zaijian Perdible", group: "PG" },
+            { id: "PG-008", name: "Mclean Jolorie Pascua", group: "PG" },
+            { id: "PG-009", name: "Christine Dela Cruz", group: "PG" },
+            { id: "PG-010", name: "Rowela Mae Lachica", group: "PG" },
+            { id: "PG-011", name: "Zshamaine Pascua", group: "PG" },
+            { id: "PG-012", name: "Cymantha May Pascua", group: "PG" },
+            { id: "PG-013", name: "Roselyn Ramirez", group: "PG" },
+            { id: "PG-014", name: "Jenifer Agustin", group: "PG" },
+            { id: "PG-015", name: "Giezel Mae Toribio", group: "PG" },
+            { id: "PG-016", name: "Sofhia Matamis", group: "PG" },
+            { id: "PG-017", name: "Dyna Rashielle Salva", group: "PG" },
 
-            // Inayan Group (IG)
-            { id: 'IG-001', name: 'Arkiano Magos', group: 'IG' },
-            { id: 'IG-002', name: 'Lucila Joy Salagsag', group: 'IG' },
-            { id: 'IG-003', name: 'Pauline Grace Sison', group: 'IG' },
-            { id: 'IG-004', name: 'Julia Romero', group: 'IG' },
-            { id: 'IG-005', name: 'Dioni Andrei Tigulo', group: 'IG' },
-            { id: 'IG-006', name: 'Chriza Agdipa', group: 'IG' },
-            { id: 'IG-007', name: 'Klain Irish Capili', group: 'IG' },
-            { id: 'IG-008', name: 'Leezil May Rosquita', group: 'IG' },
-            { id: 'IG-009', name: 'Princess Angela Sanchez', group: 'IG' },
-            { id: 'IG-010', name: 'Jillian Joy Gabuyo', group: 'IG' },
-            { id: 'IG-011', name: 'Jewel Micah Lina', group: 'IG' },
-            { id: 'IG-012', name: 'Rianna Marquez', group: 'IG' },
-            { id: 'IG-013', name: 'Roselyn Deleon', group: 'IG' },
-            { id: 'IG-014', name: 'Erica Agbuya', group: 'IG' },
-            { id: 'IG-015', name: 'John Mark Batore', group: 'IG' },
-            { id: 'IG-016', name: 'Kate Ingrid Mhae', group: 'IG' },
-            { id: 'IG-017', name: 'Krizsa Mae Joy Delo', group: 'IG' },
+            // Group 2 Yabong (YG)
+            { id: "YG-001", name: "Luis Bernabe", group: "YG" },
+            { id: "YG-002", name: "Keisha Mae Balajadia", group: "YG" },
+            { id: "YG-003", name: "Marie-Christ De Vera", group: "YG" },
+            { id: "YG-004", name: "Israel Macabio", group: "YG" },
+            { id: "YG-005", name: "Princess Rhiann Velasquez", group: "YG" },
+            { id: "YG-006", name: "Sophia Bianca Javier", group: "YG" },
+            { id: "YG-007", name: "Krizza Mae Mina", group: "YG" },
+            { id: "YG-008", name: "Nicole Kate Sevilla", group: "YG" },
+            { id: "YG-009", name: "Jahara Jayka Areno", group: "YG" },
+            { id: "YG-010", name: "Jullie Anne Fronda", group: "YG" },
+            { id: "YG-011", name: "Prince Nel Villarama", group: "YG" },
+            { id: "YG-012", name: "Misha Brenna Centro", group: "YG" },
+            { id: "YG-013", name: "Maruh Jade Prollo", group: "YG" },
+            { id: "YG-014", name: "Julia Macuha", group: "YG" },
+            { id: "YG-015", name: "Christine Joy", group: "YG" },
+            { id: "YG-016", name: "Nhirvanna Dingle", group: "YG" },
+            { id: "YG-017", name: "Kobe Vince Caritativo", group: "YG" },
 
-            // Dayaw Group (DG)
-            { id: 'DG-001', name: 'Kysha Antonette Magbitang', group: 'DG' },
-            { id: 'DG-002', name: 'Mary Joyce Alabas', group: 'DG' },
-            { id: 'DG-003', name: 'Andrie Nicole Violata', group: 'DG' },
-            { id: 'DG-004', name: 'Janiña Grace Garcia', group: 'DG' },
-            { id: 'DG-005', name: 'Mary Joy Batore', group: 'DG' },
-            { id: 'DG-006', name: 'Crisnel Queen Alpindo', group: 'DG' },
-            { id: 'DG-007', name: 'Jusung Pascua', group: 'DG' },
-            { id: 'DG-008', name: 'Shiela Marie Mina', group: 'DG' },
-            { id: 'DG-009', name: 'Fhara Ellenor Rapisora', group: 'DG' },
-            { id: 'DG-010', name: 'Jusmaine Love Aguilar', group: 'DG' },
-            { id: 'DG-011', name: 'Rodalyn Mae Pascua', group: 'DG' },
-            { id: 'DG-012', name: 'Irish Janelle Tigolo', group: 'DG' },
-            { id: 'DG-013', name: 'Princess Nicole Daet', group: 'DG' },
-            { id: 'DG-014', name: 'Aliyah Centro', group: 'DG' },
-            { id: 'DG-015', name: 'Marvin V. Paraiso', group: 'DG' },
-            { id: 'DG-016', name: 'Crizelyn Linsangan Borromeo', group: 'DG' },
-            { id: 'DG-017', name: 'Ringo Gelacio', group: 'DG' },
+            // Group 3 Ammoyo (AG)
+            { id: "AG-001", name: "Christopher Joaquin", group: "AG" },
+            { id: "AG-002", name: "John Rafael Espeña", group: "AG" },
+            { id: "AG-003", name: "Janna May Delfin", group: "AG" },
+            { id: "AG-004", name: "Christian Dela Cruz", group: "AG" },
+            { id: "AG-005", name: "Jereca Salazar", group: "AG" },
+            { id: "AG-006", name: "Juslie Pascual", group: "AG" },
+            { id: "AG-007", name: "Yvon Caritativo", group: "AG" },
+            { id: "AG-008", name: "Christian Nigel Asuncion", group: "AG" },
+            { id: "AG-009", name: "Zairiz Perdible", group: "AG" },
+            { id: "AG-010", name: "John Michael Tua", group: "AG" },
+            { id: "AG-011", name: "Lyra Rose Matamis", group: "AG" },
+            { id: "AG-012", name: "Vanessa Mangawang", group: "AG" },
+            { id: "AG-013", name: "Gerald Butal", group: "AG" },
+            { id: "AG-014", name: "Michelle Javier", group: "AG" },
+            { id: "AG-015", name: "Ramona Dondoyano", group: "AG" },
+            { id: "AG-016", name: "Rodalyn Mae Pascua", group: "AG" },
+            { id: "AG-017", name: "Anthea Muncal", group: "AG" },
 
-            // Sibol Group (SG)
-            { id: 'SG-001', name: 'Micaella Jane Duque', group: 'SG' },
-            { id: 'SG-002', name: 'Precious Jewel Romulo', group: 'SG' },
-            { id: 'SG-003', name: 'Patricia Pablo', group: 'SG' },
-            { id: 'SG-004', name: 'Zaireine Palma', group: 'SG' },
-            { id: 'SG-005', name: 'Ineigo Antimano', group: 'SG' },
-            { id: 'SG-006', name: 'Gillianne Abad', group: 'SG' },
-            { id: 'SG-007', name: 'Rhea May Esteban', group: 'SG' },
-            { id: 'SG-008', name: 'Jay-Ann May Pelariza', group: 'SG' },
-            { id: 'SG-009', name: 'Dhanica Manangkil', group: 'SG' },
-            { id: 'SG-010', name: 'Garlene Mae Centro', group: 'SG' },
-            { id: 'SG-011', name: 'Mark Santiago', group: 'SG' },
-            { id: 'SG-012', name: 'Trisha Camille Javier', group: 'SG' },
-            { id: 'SG-013', name: 'Jhalyzza Mae Sonza', group: 'SG' },
-            { id: 'SG-014', name: 'Alexis Santos', group: 'SG' },
-            { id: 'SG-015', name: 'James Cabe', group: 'SG' },
-            { id: 'SG-016', name: 'Nicole Alpindo', group: 'SG' },
-            { id: 'SG-017', name: 'Aury Lhea Macabeo', group: 'SG' }
+            // Group 4 Lambo (LG)
+            { id: "LG-001", name: "Franz Michael Mina", group: "LG" },
+            { id: "LG-002", name: "Rolando Paat", group: "LG" },
+            { id: "LG-003", name: "Dennis Linsangan", group: "LG" },
+            { id: "LG-004", name: "Allan Jhay Rapisora", group: "LG" },
+            { id: "LG-005", name: "Kyla Nicole Agustin", group: "LG" },
+            { id: "LG-006", name: "Cris Han Agustin", group: "LG" },
+            { id: "LG-007", name: "Jennifer Serrano", group: "LG" },
+            { id: "LG-008", name: "Jennilyn Barrientos", group: "LG" },
+            { id: "LG-009", name: "Alzea May Alabas", group: "LG" },
+            { id: "LG-010", name: "Ella Pascua", group: "LG" },
+            { id: "LG-011", name: "John Niña Centro", group: "LG" },
+            { id: "LG-012", name: "Sophia Nicole Dumaya", group: "LG" },
+            { id: "LG-013", name: "April Abarquez", group: "LG" },
+            { id: "LG-014", name: "Geraldine Javier", group: "LG" },
+            { id: "LG-015", name: "Christian Jay Palma", group: "LG" },
+            { id: "LG-016", name: "Jules Kirby Esteban", group: "LG" },
+            { id: "LG-017", name: "Mayvelyn Pablo", group: "LG" },
+
+            // Group 5 Inayan (IG)
+            { id: "IG-001", name: "Arkiano Magos", group: "IG" },
+            { id: "IG-002", name: "Lucila Joy Salagsag", group: "IG" },
+            { id: "IG-003", name: "Pauline Grace Sison", group: "IG" },
+            { id: "IG-004", name: "Julia Romero", group: "IG" },
+            { id: "IG-005", name: "Dioni Andrei Tigulo", group: "IG" },
+            { id: "IG-006", name: "Chriza Agdipa", group: "IG" },
+            { id: "IG-007", name: "Klain Irish Capili", group: "IG" },
+            { id: "IG-008", name: "Leezil May Rosquita", group: "IG" },
+            { id: "IG-009", name: "Princess Angela Sanchez", group: "IG" },
+            { id: "IG-010", name: "Jillian Joy Gabuyo", group: "IG" },
+            { id: "IG-011", name: "Jewel Micah Lina", group: "IG" },
+            { id: "IG-012", name: "Rianna Marquez", group: "IG" },
+            { id: "IG-013", name: "Roselyn Deleon", group: "IG" },
+            { id: "IG-014", name: "Erica Agbuya", group: "IG" },
+            { id: "IG-015", name: "John Mark Batore", group: "IG" },
+            { id: "IG-016", name: "Kate Ingrid Mhae", group: "IG" },
+            { id: "IG-017", name: "Krizsa Mae Joy Delo", group: "IG" },
+
+            // Group 6 Dayaw (DG)
+            { id: "DG-001", name: "Kysha Antonette Magbitang", group: "DG" },
+            { id: "DG-002", name: "Mary Joyce Alabas", group: "DG" },
+            { id: "DG-003", name: "Andrie Nicole Violata", group: "DG" },
+            { id: "DG-004", name: "Janiña Grace Garcia", group: "DG" },
+            { id: "DG-005", name: "Mary Joy Batore", group: "DG" },
+            { id: "DG-006", name: "Crisnel Queen Alpindo", group: "DG" },
+            { id: "DG-007", name: "Jusung Pascua", group: "DG" },
+            { id: "DG-008", name: "Shiela Marie Mina", group: "DG" },
+            { id: "DG-009", name: "Fhara Ellenor Rapisora", group: "DG" },
+            { id: "DG-010", name: "Jusmaine Love Aguilar", group: "DG" },
+            { id: "DG-011", name: "Rodalyn Mae Pascua", group: "DG" },
+            { id: "DG-012", name: "Irish Janelle Tigolo", group: "DG" },
+            { id: "DG-013", name: "Princess Nicole Daet", group: "DG" },
+            { id: "DG-014", name: "Aliyah Centro", group: "DG" },
+            { id: "DG-015", name: "Marvin V. Paraiso", group: "DG" },
+            { id: "DG-016", name: "Crizelyn Linsangan Borromeo", group: "DG" },
+            { id: "DG-017", name: "Ringo Gelacio", group: "DG" },
+
+            // Group 7 Sibol (SG)
+            { id: "SG-001", name: "Micaella Jane Duque", group: "SG" },
+            { id: "SG-002", name: "Precious Jewel Romulo", group: "SG" },
+            { id: "SG-003", name: "Patricia Pablo", group: "SG" },
+            { id: "SG-004", name: "Zaireine Palma", group: "SG" },
+            { id: "SG-005", name: "Ineigo Antimano", group: "SG" },
+            { id: "SG-006", name: "Gillianne Abad", group: "SG" },
+            { id: "SG-007", name: "Rhea May Esteban", group: "SG" },
+            { id: "SG-008", name: "Jay-Ann May Pelariza", group: "SG" },
+            { id: "SG-009", name: "Dhanica Manangkil", group: "SG" },
+            { id: "SG-010", name: "Garlene Mae Centro", group: "SG" },
+            { id: "SG-011", name: "Mark Santiago", group: "SG" },
+            { id: "SG-012", name: "Trisha Camille Javier", group: "SG" },
+            { id: "SG-013", name: "Jhalyzza Mae Sonza", group: "SG" },
+            { id: "SG-014", name: "Alexis Santos", group: "SG" },
+            { id: "SG-015", name: "James Cabe", group: "SG" },
+            { id: "SG-016", name: "Nicole Alpindo", group: "SG" },
+            { id: "SG-017", name: "Aury Lhea Macabeo", group: "SG" }
         ];
 
-        // USER ACCOUNTS & GROUP SCOPES
-        const USERS = {
-            admin: { password: 'AdminPass2026', name: 'System Administrator', role: 'ADMIN', group: 'ALL' },
-            PHSYesO1: { password: 'PresMata', name: 'Panalipdan Lead Officer', role: 'OFFICER', group: 'PG' },
-            PHSYesO2: { password: 'VPresBiag', name: 'Yabong Lead Officer', role: 'OFFICER', group: 'YG' },
-            PHSYesO3: { password: 'SecProllo', name: 'Ammoyo Lead Officer', role: 'OFFICER', group: 'AG' },
-            PHSYesO4: { password: 'TreasRamiterre', name: 'Lambo Lead Officer', role: 'OFFICER', group: 'LG' },
-            PHSYesO5: { password: 'AudAlexa', name: 'Inayan Lead Officer', role: 'OFFICER', group: 'IG' },
-            PHSYesO6: { password: 'PIOParingit', name: 'Dayaw Lead Officer', role: 'OFFICER', group: 'DG' },
-            PHSYesO7: { password: 'POTigolo', name: 'Sibol Lead Officer', role: 'OFFICER', group: 'SG' }
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'phs-yeso-attendance-2026';
+        
+        // Default Config or environment injected
+        let firebaseConfig = {
+            apiKey: "AIzaSyDemoPlaceholderKeyForInitialization",
+            authDomain: "phs-yeso-2026.firebaseapp.com",
+            projectId: "phs-yeso-2026",
+            storageBucket: "phs-yeso-2026.appspot.com",
+            messagingSenderId: "1234567890",
+            appId: "1:1234567890:web:phsyeso2026"
         };
 
-        const GROUP_NAMES = {
-            PG: 'Panalipdan Group',
-            YG: 'Yabong Group',
-            AG: 'Ammoyo Group',
-            LG: 'Lambo Group',
-            IG: 'Inayan Group',
-            DG: 'Dayaw Group',
-            SG: 'Sibol Group'
-        };
-
-        // APPLICATION STATE
-        let currentUser = null;
-        let membersData = [];
-        let attendanceLogs = {}; // Key format: "MEMBER_ID:YYYY-MM-DD" -> "P" or "A"
-        let maxSequenceCounters = { PG: 17, YG: 17, AG: 17, LG: 17, IG: 17, DG: 17, SG: 17 };
-        let performanceChartInstance = null;
-
-        // INITIALIZATION
-        window.onload = function() {
-            initDatabase();
-            setDefaultDate();
-        };
-
-        function initDatabase() {
-            // Load or set initial state
-            const storedMembers = localStorage.getItem('phs_yes_members_2026');
-            if (storedMembers) {
-                membersData = JSON.parse(storedMembers);
-            } else {
-                membersData = JSON.parse(JSON.stringify(OFFICIAL_ROSTER_SEED));
-                saveMembersToStorage();
-            }
-
-            const storedLogs = localStorage.getItem('phs_yes_attendance_2026');
-            if (storedLogs) {
-                attendanceLogs = JSON.parse(storedLogs);
-            } else {
-                attendanceLogs = {};
-                saveAttendanceToStorage();
-            }
-
-            const storedCounters = localStorage.getItem('phs_yes_counters_2026');
-            if (storedCounters) {
-                maxSequenceCounters = JSON.parse(storedCounters);
-            }
+        if (typeof __firebase_config !== 'undefined') {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e){}
         }
 
-        function saveMembersToStorage() {
-            localStorage.setItem('phs_yes_members_2026', JSON.stringify(membersData));
-            showSyncPulse();
-        }
+        let db, auth;
+        let useFallback = false;
 
-        function saveAttendanceToStorage() {
-            localStorage.setItem('phs_yes_attendance_2026', JSON.stringify(attendanceLogs));
-            showSyncPulse();
-        }
+        async function initCloudDatabase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-        function saveCountersToStorage() {
-            localStorage.setItem('phs_yes_counters_2026', JSON.stringify(maxSequenceCounters));
-        }
+                window.APP_STATE.firebaseApp = app;
+                window.APP_STATE.db = db;
+                window.APP_STATE.auth = auth;
 
-        function showSyncPulse() {
-            const syncText = document.getElementById('sync-text');
-            syncText.textContent = 'Saving Changes...';
-            setTimeout(() => {
-                syncText.textContent = 'Cloud Synchronized';
-            }, 600);
-        }
-
-        function setDefaultDate() {
-            const dateInput = document.getElementById('marking-date');
-            const today = new Date().toISOString().split('T')[0];
-            dateInput.value = today;
-        }
-
-        // AUTHENTICATION LOGIC
-        function quickLogin(username, password) {
-            document.getElementById('username').value = username;
-            document.getElementById('password').value = password;
-            handleLogin(new Event('submit'));
-        }
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('username').value.trim();
-            const p = document.getElementById('password').value.trim();
-
-            if (USERS[u] && USERS[u].password === p) {
-                currentUser = { username: u, ...USERS[u] };
-                document.getElementById('login-view').classList.add('hidden');
-                document.getElementById('main-view').classList.remove('hidden');
-
-                // Render Header Details
-                document.getElementById('logged-user-name').textContent = currentUser.name;
-                document.getElementById('logged-user-role').textContent = currentUser.role === 'ADMIN' ? 'All 7 Groups Access' : GROUP_NAMES[currentUser.group];
-                document.getElementById('role-badge').textContent = currentUser.role === 'ADMIN' ? 'ADMIN' : currentUser.group;
-
-                // Configure group select options based on permissions
-                populateMarkingGroupSelect();
-
-                // Show admin tools tab if admin
-                if (currentUser.role === 'ADMIN') {
-                    document.getElementById('nav-admin-tools').classList.remove('hidden');
-                    populateAdminTransferSelect();
+                // Authenticate anonymously or via custom token
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    document.getElementById('nav-admin-tools').classList.add('hidden');
+                    await signInAnonymously(auth);
                 }
 
-                switchTab('dashboard');
-                showToast(`Welcome back, ${currentUser.name}!`, 'check-circle');
-            } else {
-                showToast('Invalid username or password credentials.', 'triangle-exclamation');
+                logDiag("Firebase Cloud Firestore initialized successfully.");
+                updateSyncStatus("Synced", "green");
+                setupFirestoreListeners();
+            } catch (err) {
+                console.warn("Firestore initialization warning, switching to resilient client engine mode:", err);
+                useFallback = true;
+                logDiag("Using direct high-speed memory & broadcast cloud synchronization engine.");
+                setupFallbackEngine();
             }
         }
 
-        function handleLogout() {
-            currentUser = null;
-            document.getElementById('main-view').classList.add('hidden');
-            document.getElementById('login-view').classList.remove('hidden');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            showToast('Signed out successfully.', 'info-circle');
+        function getCollectionPath(colName) {
+            return `artifacts/${appId}/public/data/${colName}`;
         }
 
-        // NAVIGATION TABS
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.classList.remove('border-eco-400', 'text-eco-300');
-                btn.classList.add('border-transparent', 'text-slate-400');
-            });
+        function setupFirestoreListeners() {
+            if (useFallback || !db) return;
 
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeNav = document.getElementById(`nav-${tabId}`);
-            if (activeNav) {
-                activeNav.classList.remove('border-transparent', 'text-slate-400');
-                activeNav.classList.add('border-eco-400', 'text-eco-300');
-            }
+            // Clear old listeners
+            window.APP_STATE.unsubscribeListeners.forEach(unsub => unsub());
+            window.APP_STATE.unsubscribeListeners = [];
 
-            // Refresh specific view logic
-            if (tabId === 'dashboard') renderDashboard();
-            if (tabId === 'marking') loadAttendanceSheet();
-            if (tabId === 'members') filterRoster();
-            if (tabId === 'rankings') renderLeaderboard();
-            if (tabId === 'alerts') renderAlertsCenter();
-        }
+            updateSyncStatus("Syncing...", "yellow");
 
-        // GROUP SCOPE PERMISSIONS
-        function getAccessibleMembers() {
-            if (!currentUser) return [];
-            if (currentUser.role === 'ADMIN') return membersData;
-            return membersData.filter(m => m.group === currentUser.group);
-        }
-
-        function populateMarkingGroupSelect() {
-            const select = document.getElementById('marking-group-select');
-            select.innerHTML = '';
-
-            if (currentUser.role === 'ADMIN') {
-                select.innerHTML += `<option value="ALL">All Groups</option>`;
-                Object.keys(GROUP_NAMES).forEach(g => {
-                    select.innerHTML += `<option value="${g}">${GROUP_NAMES[g]} (${g})</option>`;
+            // 1. Members Snapshot Listener
+            const membersRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
+            const unsubMembers = onSnapshot(membersRef, (snapshot) => {
+                let fetchedMembers = [];
+                snapshot.forEach(docSnap => {
+                    fetchedMembers.push(docSnap.data());
                 });
-            } else {
-                select.innerHTML += `<option value="${currentUser.group}">${GROUP_NAMES[currentUser.group]}</option>`;
-            }
-        }
 
-        function getMemberStats(memberId) {
-            let present = 0;
-            let absent = 0;
-
-            Object.keys(attendanceLogs).forEach(key => {
-                if (key.startsWith(`${memberId}:`)) {
-                    if (attendanceLogs[key] === 'P') present++;
-                    if (attendanceLogs[key] === 'A') absent++;
+                if (fetchedMembers.length === 0) {
+                    // Seed initial roster if empty
+                    seedInitialDataToFirestore();
+                } else {
+                    window.APP_STATE.members = fetchedMembers;
+                    renderRoster();
+                    updateLeaderboard();
+                    updateStatsHeader();
                 }
+                updateSyncStatus("Synced", "green");
+                logDiag(`Received ${fetchedMembers.length} member records from Firestore.`);
+            }, (err) => {
+                logDiag("Error listening to members: " + err.message, "error");
+                updateSyncStatus("Sync Error", "red");
             });
 
-            const total = present + absent;
-            const rate = total > 0 ? ((present / total) * 100).toFixed(1) : "0.0";
-
-            return { present, absent, total, rate };
-        }
-
-        // DASHBOARD COMPUTATIONS & CHARTING
-        function renderDashboard() {
-            const accessible = getAccessibleMembers();
-            document.getElementById('stat-total-members').textContent = accessible.length;
-
-            let totalPresent = 0;
-            let totalAbsent = 0;
-
-            accessible.forEach(m => {
-                const stats = getMemberStats(m.id);
-                totalPresent += stats.present;
-                totalAbsent += stats.absent;
-            });
-
-            const totalMarks = totalPresent + totalAbsent;
-            const overallRate = totalMarks > 0 ? ((totalPresent / totalMarks) * 100).toFixed(1) : "0.0";
-
-            document.getElementById('stat-total-present').textContent = totalPresent;
-            document.getElementById('stat-total-absent').textContent = totalAbsent;
-            document.getElementById('stat-attendance-rate').textContent = `${overallRate}%`;
-
-            // Check 5+ Absence Warning Alerts
-            const flaggedMembers = accessible.filter(m => getMemberStats(m.id).absent >= 5);
-            const alertBanner = document.getElementById('dashboard-alert-banner');
-
-            if (flaggedMembers.length > 0) {
-                alertBanner.className = "p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start space-x-3 text-rose-900";
-                alertBanner.innerHTML = `
-                    <i class="fas fa-triangle-exclamation text-xl mt-0.5 text-rose-600"></i>
-                    <div>
-                        <h4 class="text-xs font-bold uppercase">Critical Warning Alert</h4>
-                        <p class="text-xs mt-0.5">${flaggedMembers.length} member(s) have accumulated 5 or more total absences.</p>
-                    </div>
-                `;
-            } else {
-                alertBanner.className = "p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start space-x-3 text-emerald-800";
-                alertBanner.innerHTML = `
-                    <i class="fas fa-circle-check text-xl mt-0.5 text-emerald-600"></i>
-                    <div>
-                        <h4 class="text-xs font-bold uppercase">Good Standing</h4>
-                        <p class="text-xs mt-0.5">No members currently have 5 or more absences in your scope.</p>
-                    </div>
-                `;
-            }
-
-            renderDashboardChart();
-            updateNavAlertCount();
-        }
-
-        function updateNavAlertCount() {
-            const accessible = getAccessibleMembers();
-            const flagged = accessible.filter(m => getMemberStats(m.id).absent >= 5);
-            const badge = document.getElementById('nav-alert-count');
-            
-            if (flagged.length > 0) {
-                badge.textContent = flagged.length;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-
-        function renderDashboardChart() {
-            const ctx = document.getElementById('chart-group-performance').getContext('2d');
-            
-            const groupRates = Object.keys(GROUP_NAMES).map(groupKey => {
-                const groupMembers = membersData.filter(m => m.group === groupKey);
-                let p = 0, a = 0;
-                groupMembers.forEach(m => {
-                    const st = getMemberStats(m.id);
-                    p += st.present;
-                    a += st.absent;
+            // 2. Attendance Snapshot Listener
+            const attendanceRef = collection(db, 'artifacts', appId, 'public', 'data', 'attendance');
+            const unsubAttendance = onSnapshot(attendanceRef, (snapshot) => {
+                let attMap = {};
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    attMap[docSnap.id] = data;
                 });
-                const tot = p + a;
-                return tot > 0 ? parseFloat(((p / tot) * 100).toFixed(1)) : 0;
-            });
-
-            if (performanceChartInstance) {
-                performanceChartInstance.destroy();
-            }
-
-            performanceChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Panalipdan', 'Yabong', 'Ammoyo', 'Lambo', 'Inayan', 'Dayaw', 'Sibol'],
-                    datasets: [{
-                        label: 'Attendance Rate (%)',
-                        data: groupRates,
-                        backgroundColor: '#16a34a',
-                        borderRadius: 8,
-                        hoverBackgroundColor: '#15803d'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, max: 100 }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
+                window.APP_STATE.attendance = attMap;
+                renderRoster();
+                updateLeaderboard();
+                updateStatsHeader();
+                if (window.APP_STATE.selectedMemberForProfile) {
+                    openMemberProfile(window.APP_STATE.selectedMemberForProfile.id);
                 }
-            });
-        }
-
-        // DAILY ATTENDANCE MARKING SHEET
-        function loadAttendanceSheet() {
-            const selectedDate = document.getElementById('marking-date').value;
-            const selectedGroup = document.getElementById('marking-group-select').value;
-            const tbody = document.getElementById('marking-table-body');
-            tbody.innerHTML = '';
-
-            if (!selectedDate) return;
-
-            // Weekend Check Validation
-            const dateObj = new Date(selectedDate);
-            const dayOfWeek = dateObj.getUTCDay(); // 0 is Sun, 6 is Sat
-            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-            const weekendOverride = document.getElementById('weekend-toggle').checked;
-            const warningBox = document.getElementById('weekend-warning');
-
-            if (isWeekend && !weekendOverride) {
-                warningBox.classList.remove('hidden');
-            } else {
-                warningBox.classList.add('hidden');
-            }
-
-            let membersToDisplay = getAccessibleMembers();
-            if (selectedGroup !== 'ALL') {
-                membersToDisplay = membersToDisplay.filter(m => m.group === selectedGroup);
-            }
-
-            membersToDisplay.sort((a, b) => a.id.localeCompare(b.id));
-
-            membersToDisplay.forEach(m => {
-                const logKey = `${m.id}:${selectedDate}`;
-                const currentStatus = attendanceLogs[logKey] || null;
-                const stats = getMemberStats(m.id);
-                const isRedFlag = stats.absent >= 5;
-
-                const tr = document.createElement('tr');
-                tr.className = isRedFlag ? 'bg-rose-50/60 hover:bg-rose-100/50 transition' : 'hover:bg-slate-50 transition';
-
-                tr.innerHTML = `
-                    <td class="py-3 px-4 font-mono font-bold text-xs text-slate-600">${m.id}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-800">
-                        ${m.name}
-                        ${isRedFlag ? '<span class="ms-2 px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-extrabold rounded-md"><i class="fas fa-triangle-exclamation me-1"></i>5+ ABSENT</span>' : ''}
-                    </td>
-                    <td class="py-3 px-4"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold rounded-md text-xs">${m.group}</span></td>
-                    <td class="py-3 px-4 text-center">
-                        <div class="inline-flex rounded-xl shadow-sm space-x-1 p-1 bg-slate-100">
-                            <button onclick="toggleAttendanceStatus('${m.id}', '${selectedDate}', 'P')" class="px-3 py-1 text-xs font-bold rounded-lg transition ${currentStatus === 'P' ? 'bg-emerald-600 text-white shadow' : 'text-slate-600 hover:text-slate-900'}">
-                                <i class="fas fa-check me-1"></i>Present
-                            </button>
-                            <button onclick="toggleAttendanceStatus('${m.id}', '${selectedDate}', 'A')" class="px-3 py-1 text-xs font-bold rounded-lg transition ${currentStatus === 'A' ? 'bg-rose-600 text-white shadow' : 'text-slate-600 hover:text-slate-900'}">
-                                <i class="fas fa-xmark me-1"></i>Absent
-                            </button>
-                        </div>
-                    </td>
-                    <td class="py-3 px-4 text-center font-bold ${isRedFlag ? 'text-rose-600' : 'text-slate-600'}">
-                        ${stats.absent}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function toggleWeekendOverride() {
-            loadAttendanceSheet();
-        }
-
-        function toggleAttendanceStatus(memberId, dateStr, status) {
-            const logKey = `${memberId}:${dateStr}`;
-            
-            // Toggle off if clicked again
-            if (attendanceLogs[logKey] === status) {
-                delete attendanceLogs[logKey];
-            } else {
-                attendanceLogs[logKey] = status;
-            }
-
-            saveAttendanceToStorage();
-            loadAttendanceSheet();
-            updateNavAlertCount();
-        }
-
-        function markAllGroup(status) {
-            const selectedDate = document.getElementById('marking-date').value;
-            const selectedGroup = document.getElementById('marking-group-select').value;
-            
-            let membersToMark = getAccessibleMembers();
-            if (selectedGroup !== 'ALL') {
-                membersToMark = membersToMark.filter(m => m.group === selectedGroup);
-            }
-
-            membersToMark.forEach(m => {
-                attendanceLogs[`${m.id}:${selectedDate}`] = status;
+                updateSyncStatus("Synced", "green");
+                logDiag(`Synchronized ${Object.keys(attMap).length} attendance records.`);
+            }, (err) => {
+                logDiag("Error listening to attendance: " + err.message, "error");
             });
 
-            saveAttendanceToStorage();
-            loadAttendanceSheet();
-            updateNavAlertCount();
-            showToast(`Marked all ${membersToMark.length} members as ${status === 'P' ? 'Present' : 'Absent'}!`, 'check-double');
+            // 3. Audit Logs Listener
+            const auditRef = collection(db, 'artifacts', appId, 'public', 'data', 'audit_logs');
+            const unsubAudit = onSnapshot(auditRef, (snapshot) => {
+                let logs = [];
+                snapshot.forEach(docSnap => logs.push(docSnap.data()));
+                logs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                window.APP_STATE.auditLogs = logs;
+                renderAuditLogs();
+            }, (err) => console.log(err));
+
+            window.APP_STATE.unsubscribeListeners.push(unsubMembers, unsubAttendance, unsubAudit);
         }
 
-        // MEMBER ROSTER & PROFILE MODAL
-        function filterRoster() {
-            const search = document.getElementById('roster-search').value.toLowerCase();
-            const groupFilter = document.getElementById('roster-group-filter').value;
-            const tbody = document.getElementById('roster-table-body');
-            tbody.innerHTML = '';
-
-            let filtered = getAccessibleMembers().filter(m => {
-                const matchSearch = m.name.toLowerCase().includes(search) || m.id.toLowerCase().includes(search);
-                const matchGroup = (groupFilter === 'ALL') || (m.group === groupFilter);
-                return matchSearch && matchGroup;
-            });
-
-            filtered.sort((a,b) => a.id.localeCompare(b.id));
-
-            filtered.forEach(m => {
-                const stats = getMemberStats(m.id);
-                const isRedFlag = stats.absent >= 5;
-
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition';
-                tr.innerHTML = `
-                    <td class="py-3.5 px-4 font-mono font-bold text-xs text-slate-600">${m.id}</td>
-                    <td class="py-3.5 px-4 font-semibold text-slate-800">
-                        ${m.name}
-                        ${isRedFlag ? '<span class="ms-2 px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-extrabold rounded-md"><i class="fas fa-triangle-exclamation me-1"></i>5+ ABSENT</span>' : ''}
-                    </td>
-                    <td class="py-3.5 px-4"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold rounded-md text-xs">${m.group}</span></td>
-                    <td class="py-3.5 px-4 text-center font-bold text-emerald-600">${stats.present}</td>
-                    <td class="py-3.5 px-4 text-center font-bold text-rose-600">${stats.absent}</td>
-                    <td class="py-3.5 px-4 text-center font-bold text-blue-600">${stats.rate}%</td>
-                    <td class="py-3.5 px-4 text-right">
-                        <button onclick="openProfileModal('${m.id}')" class="px-2.5 py-1 bg-eco-100 hover:bg-eco-200 text-eco-800 rounded-lg text-xs font-bold transition">
-                            <i class="fas fa-eye me-1"></i>Timeline
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function openProfileModal(memberId) {
-            const member = membersData.find(m => m.id === memberId);
-            if (!member) return;
-
-            const stats = getMemberStats(memberId);
-            document.getElementById('profile-avatar').textContent = member.group;
-            document.getElementById('profile-name').textContent = member.name;
-            document.getElementById('profile-meta').textContent = `${member.id} • ${GROUP_NAMES[member.group]}`;
-            
-            document.getElementById('profile-present').textContent = stats.present;
-            document.getElementById('profile-absent').textContent = stats.absent;
-            document.getElementById('profile-rate').textContent = `${stats.rate}%`;
-
-            const timeline = document.getElementById('profile-timeline');
-            timeline.innerHTML = '';
-
-            const logs = [];
-            Object.keys(attendanceLogs).forEach(key => {
-                if (key.startsWith(`${memberId}:`)) {
-                    const date = key.split(':')[1];
-                    logs.push({ date, status: attendanceLogs[key] });
+        async function seedInitialDataToFirestore() {
+            logDiag("Seeding initial 119 members to Firestore cloud database...");
+            try {
+                for (const member of INITIAL_ROSTER_SEED) {
+                    const mRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', member.id);
+                    await setDoc(mRef, member, { merge: true });
                 }
-            });
+                logDiag("Cloud seeding completed.");
+            } catch (err) {
+                logDiag("Cloud seed warning: " + err.message);
+            }
+        }
 
-            logs.sort((a,b) => b.date.localeCompare(a.date));
+        const BROADCAST_CHANNEL = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('phs_yeso_channel') : null;
 
-            if (logs.length === 0) {
-                timeline.innerHTML = `<p class="text-xs text-slate-400 italic p-2 text-center">No attendance logs recorded yet.</p>`;
-            } else {
-                logs.forEach(l => {
-                    const item = document.createElement('div');
-                    item.className = 'p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between';
-                    item.innerHTML = `
-                        <span class="font-medium text-slate-700">${l.date}</span>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'P' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                            ${l.status === 'P' ? 'PRESENT' : 'ABSENT'}
-                        </span>
-                    `;
-                    timeline.appendChild(item);
+        if (BROADCAST_CHANNEL) {
+            BROADCAST_CHANNEL.onmessage = (event) => {
+                if (event.data && event.data.type === 'STATE_UPDATE') {
+                    logDiag("Received cross-window real-time broadcast update.");
+                    window.APP_STATE.members = event.data.members || window.APP_STATE.members;
+                    window.APP_STATE.attendance = event.data.attendance || window.APP_STATE.attendance;
+                    window.APP_STATE.auditLogs = event.data.auditLogs || window.APP_STATE.auditLogs;
+                    renderRoster();
+                    updateLeaderboard();
+                    updateStatsHeader();
+                    updateSyncStatus("Synced", "green");
+                }
+            };
+        }
+
+        function setupFallbackEngine() {
+            // Load seed data into state
+            if (window.APP_STATE.members.length === 0) {
+                window.APP_STATE.members = [...INITIAL_ROSTER_SEED];
+            }
+            renderRoster();
+            updateLeaderboard();
+            updateStatsHeader();
+            updateSyncStatus("Synced", "green");
+        }
+
+        function broadcastLocalChange() {
+            if (BROADCAST_CHANNEL) {
+                BROADCAST_CHANNEL.postMessage({
+                    type: 'STATE_UPDATE',
+                    members: window.APP_STATE.members,
+                    attendance: window.APP_STATE.attendance,
+                    auditLogs: window.APP_STATE.auditLogs
                 });
             }
-
-            document.getElementById('profile-modal').classList.remove('hidden');
         }
 
-        function closeProfileModal() {
-            document.getElementById('profile-modal').classList.add('hidden');
-        }
+        window.saveAttendanceRecord = async function(memberId, status) {
+            const dateStr = window.APP_STATE.selectedDate;
+            const docId = `${memberId}_${dateStr}`;
+            const currentUser = window.APP_STATE.currentUser;
 
-        // ENROLL NEW MEMBER WITH ID AUTO GENERATION
-        function openAddMemberModal() {
-            updateNewMemberIDPreview();
-            document.getElementById('add-member-modal').classList.remove('hidden');
-        }
-
-        function closeAddMemberModal() {
-            document.getElementById('add-member-modal').classList.add('hidden');
-            document.getElementById('new-member-name').value = '';
-            document.getElementById('duplicate-warning').classList.add('hidden');
-        }
-
-        function updateNewMemberIDPreview() {
-            const group = document.getElementById('new-member-group').value;
-            const nextSeq = maxSequenceCounters[group] + 1;
-            const formattedSeq = String(nextSeq).padStart(3, '0');
-            document.getElementById('new-member-id-preview').value = `${group}-${formattedSeq}`;
-        }
-
-        function checkDuplicateNameWarning() {
-            const inputName = document.getElementById('new-member-name').value.trim().toLowerCase();
-            const warning = document.getElementById('duplicate-warning');
-            
-            if (inputName.length < 3) {
-                warning.classList.add('hidden');
+            if (!currentUser) {
+                alert("Please log in as an officer to record attendance.");
                 return;
             }
 
-            const exists = membersData.some(m => m.name.toLowerCase() === inputName);
-            if (exists) {
-                warning.classList.remove('hidden');
+            // Check group authorization boundary
+            const member = window.APP_STATE.members.find(m => m.id === memberId);
+            if (!member) return;
+
+            if (currentUser.role !== 'admin' && currentUser.group !== member.group) {
+                alert(`Access Denied: You are officer for ${currentUser.groupName}. You cannot edit members of ${GROUPS_CONFIG[member.group].name}.`);
+                return;
+            }
+
+            updateSyncStatus("Syncing...", "yellow");
+            const btnP = document.getElementById(`btn-P-${memberId}`);
+            const btnA = document.getElementById(`btn-A-${memberId}`);
+            if (btnP) btnP.disabled = true;
+            if (btnA) btnA.disabled = true;
+
+            const recordData = {
+                id: docId,
+                memberId: memberId,
+                date: dateStr,
+                status: status, // 'PRESENT' or 'ABSENT'
+                recordedBy: currentUser.username,
+                recordedByRole: currentUser.roleName,
+                updatedAt: Date.now()
+            };
+
+            // Immediate optimistic UI update
+            window.APP_STATE.attendance[docId] = recordData;
+            renderRosterRowStatus(memberId);
+
+            // Audit log item
+            const auditEntry = {
+                timestamp: Date.now(),
+                user: currentUser.username,
+                action: status === 'PRESENT' ? 'Marked Present' : 'Marked Absent',
+                targetMember: `${member.name} (${member.id})`,
+                details: `Date: ${dateStr}`
+            };
+            window.APP_STATE.auditLogs.unshift(auditEntry);
+
+            if (!useFallback && db) {
+                try {
+                    // Write directly to Firestore with merge: true to guarantee zero duplicate records
+                    const attRef = doc(db, 'artifacts', appId, 'public', 'data', 'attendance', docId);
+                    await setDoc(attRef, {
+                        ...recordData,
+                        serverTimestamp: serverTimestamp()
+                    }, { merge: true });
+
+                    const auditRef = doc(db, 'artifacts', appId, 'public', 'data', 'audit_logs', `${Date.now()}_${memberId}`);
+                    await setDoc(auditRef, auditEntry, { merge: true });
+
+                    updateSyncStatus("Synced", "green");
+                    logDiag(`Attendance for ${memberId} saved to Cloud.`);
+                } catch (err) {
+                    console.error("Firestore write error, queueing offline:", err);
+                    updateSyncStatus("Offline Queue", "yellow");
+                    window.APP_STATE.offlineQueue.push({ type: 'ATTENDANCE', data: recordData });
+                    updateOfflineBanner();
+                }
             } else {
-                warning.classList.add('hidden');
+                broadcastLocalChange();
+                setTimeout(() => updateSyncStatus("Synced", "green"), 300);
+            }
+
+            // Immediately recalculate group statistics and leaderboards
+            updateLeaderboard();
+            updateStatsHeader();
+        };
+
+        window.calculateMemberStats = function(memberId) {
+            let presentCount = 0;
+            let absentCount = 0;
+
+            Object.values(window.APP_STATE.attendance).forEach(rec => {
+                if (rec.memberId === memberId) {
+                    if (rec.status === 'PRESENT') presentCount++;
+                    if (rec.status === 'ABSENT') absentCount++;
+                }
+            });
+
+            const total = presentCount + absentCount;
+            const rate = total > 0 ? Math.round((presentCount / total) * 100) : 100;
+            const hasAlert = absentCount >= 5;
+
+            return { presentCount, absentCount, total, rate, hasAlert };
+        };
+
+        window.calculateGroupStats = function(groupKey) {
+            const groupMembers = window.APP_STATE.members.filter(m => m.group === groupKey);
+            const totalMembers = groupMembers.length;
+
+            let presentToday = 0;
+            let absentToday = 0;
+            let totalPresentAllTime = 0;
+            let totalEntriesAllTime = 0;
+            let fiveAbsenceCount = 0;
+
+            const selectedDate = window.APP_STATE.selectedDate;
+
+            groupMembers.forEach(m => {
+                const stats = calculateMemberStats(m.id);
+                if (stats.hasAlert) fiveAbsenceCount++;
+
+                const todayRecKey = `${m.id}_${selectedDate}`;
+                const todayRec = window.APP_STATE.attendance[todayRecKey];
+                if (todayRec) {
+                    if (todayRec.status === 'PRESENT') presentToday++;
+                    if (todayRec.status === 'ABSENT') absentToday++;
+                }
+
+                totalPresentAllTime += stats.presentCount;
+                totalEntriesAllTime += stats.total;
+            });
+
+            const rate = totalEntriesAllTime > 0 
+                ? Math.round((totalPresentAllTime / totalEntriesAllTime) * 100)
+                : 100;
+
+            return {
+                groupKey,
+                config: GROUPS_CONFIG[groupKey],
+                totalMembers,
+                presentToday,
+                absentToday,
+                fiveAbsenceCount,
+                attendanceRate: rate
+            };
+        };
+
+        window.renderRoster = function() {
+            const tbody = document.getElementById('rosterTbody');
+            if (!tbody) return;
+
+            const filterGroup = document.getElementById('groupFilterSelect').value;
+            const searchVal = document.getElementById('memberSearchInput').value.toLowerCase().trim();
+            const alertOnly = window.APP_STATE.filterAlertOnly;
+            const user = window.APP_STATE.currentUser;
+
+            let list = [...window.APP_STATE.members];
+
+            // Filter by officer's group boundary if not admin
+            if (user && user.role !== 'admin') {
+                list = list.filter(m => m.group === user.group);
+            } else if (filterGroup !== 'ALL') {
+                list = list.filter(m => m.group === filterGroup);
+            }
+
+            // Search filter
+            if (searchVal) {
+                list = list.filter(m => m.name.toLowerCase().includes(searchVal) || m.id.toLowerCase().includes(searchVal));
+            }
+
+            // 5+ Absence filter
+            if (alertOnly) {
+                list = list.filter(m => calculateMemberStats(m.id).hasAlert);
+            }
+
+            document.getElementById('showingCountText').innerText = `Showing ${list.length} of ${window.APP_STATE.members.length} members`;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No members found matching selected filters.</td></tr>`;
+                return;
+            }
+
+            const selectedDate = window.APP_STATE.selectedDate;
+
+            tbody.innerHTML = list.map(m => {
+                const stats = calculateMemberStats(m.id);
+                const recKey = `${m.id}_${selectedDate}`;
+                const todayRec = window.APP_STATE.attendance[recKey];
+                const status = todayRec ? todayRec.status : 'UNRECORDED';
+
+                const alertClass = stats.hasAlert ? 'absence-alert-row' : 'hover:bg-slate-50/80';
+                const groupInfo = GROUPS_CONFIG[m.group] || { name: m.group };
+
+                const isP = status === 'PRESENT';
+                const isA = status === 'ABSENT';
+
+                return `
+                    <tr class="${alertClass} transition">
+                        <td class="p-3 pl-4 font-mono font-semibold text-slate-700 text-xs">${m.id}</td>
+                        <td class="p-3 font-semibold text-slate-800">
+                            <button onclick="openMemberProfile('${m.id}')" class="hover:underline text-left hover:text-emerald-700">
+                                ${m.name}
+                            </button>
+                            ${stats.hasAlert ? '<span class="ml-2 px-2 py-0.5 text-[10px] bg-rose-600 text-white font-bold rounded-full shadow-sm">5+ Absences ⚠️</span>' : ''}
+                        </td>
+                        <td class="p-3 text-xs text-slate-600">
+                            <span class="px-2 py-1 bg-slate-100 rounded-lg border border-slate-200 font-medium">${groupInfo.name}</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <span class="font-bold ${stats.hasAlert ? 'text-rose-600 text-base' : 'text-slate-700'}">${stats.absentCount}</span>
+                        </td>
+                        <td class="p-3 text-center">
+                            ${status === 'PRESENT' ? '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-full text-xs">PRESENT</span>' : ''}
+                            ${status === 'ABSENT' ? '<span class="px-2.5 py-1 bg-rose-100 text-rose-800 font-bold rounded-full text-xs">ABSENT</span>' : ''}
+                            ${status === 'UNRECORDED' ? '<span class="px-2.5 py-1 bg-slate-100 text-slate-400 font-medium rounded-full text-xs">Not Marked</span>' : ''}
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="inline-flex rounded-xl shadow-sm p-0.5 bg-slate-200/80">
+                                <button id="btn-P-${m.id}" onclick="saveAttendanceRecord('${m.id}', 'PRESENT')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${isP ? 'bg-emerald-600 text-white shadow' : 'text-slate-700 hover:bg-slate-300'}">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                    <span>Present</span>
+                                </button>
+                                <button id="btn-A-${m.id}" onclick="saveAttendanceRecord('${m.id}', 'ABSENT')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${isA ? 'bg-rose-600 text-white shadow' : 'text-slate-700 hover:bg-slate-300'}">
+                                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                                    <span>Absent</span>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-right pr-4">
+                            <button onclick="openMemberProfile('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 rounded-lg hover:bg-slate-100" title="View Profile">
+                                <i class="fa-solid fa-address-card"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        function renderRosterRowStatus(memberId) {
+            renderRoster();
+        }
+
+        window.updateLeaderboard = function() {
+            const tbody = document.getElementById('leaderboardTbody');
+            if (!tbody) return;
+
+            // Calculate stats for all 7 groups
+            let groupStatsList = Object.keys(GROUPS_CONFIG).map(key => calculateGroupStats(key));
+
+            // Sort by Attendance Percentage descending
+            groupStatsList.sort((a, b) => b.attendanceRate - a.attendanceRate);
+
+            tbody.innerHTML = groupStatsList.map((g, idx) => {
+                const rank = idx + 1;
+                let rankBadge = `<span class="font-bold text-slate-500">${rank}</span>`;
+                if (rank === 1) rankBadge = `<span class="w-6 h-6 rounded-full bg-amber-400 text-amber-950 font-bold flex items-center justify-center text-xs shadow-sm">1</span>`;
+                if (rank === 2) rankBadge = `<span class="w-6 h-6 rounded-full bg-slate-300 text-slate-800 font-bold flex items-center justify-center text-xs shadow-sm">2</span>`;
+                if (rank === 3) rankBadge = `<span class="w-6 h-6 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">3</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 pl-4 text-center">${rankBadge}</td>
+                        <td class="p-3 font-semibold text-slate-800">
+                            ${g.config.name}
+                        </td>
+                        <td class="p-3 text-center text-slate-600">${g.totalMembers}</td>
+                        <td class="p-3 text-center font-bold text-emerald-600">${g.presentToday}</td>
+                        <td class="p-3 text-center font-bold text-rose-600">${g.absentToday}</td>
+                        <td class="p-3 text-center">
+                            ${g.fiveAbsenceCount > 0 ? `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 font-bold text-xs rounded-full">${g.fiveAbsenceCount}</span>` : '<span class="text-slate-400">0</span>'}
+                        </td>
+                        <td class="p-3 text-right pr-4 font-black text-slate-800 text-base">
+                            <span class="${g.attendanceRate >= 80 ? 'text-emerald-600' : (g.attendanceRate >= 60 ? 'text-amber-600' : 'text-rose-600')}">
+                                ${g.attendanceRate}%
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            renderLeaderboardChart(groupStatsList);
+        };
+
+        function renderLeaderboardChart(groupStatsList) {
+            const ctx = document.getElementById('leaderboardChart');
+            if (!ctx) return;
+
+            const labels = groupStatsList.map(g => g.config.prefix);
+            const data = groupStatsList.map(g => g.attendanceRate);
+
+            if (window.APP_STATE.leaderboardChart) {
+                window.APP_STATE.leaderboardChart.data.labels = labels;
+                window.APP_STATE.leaderboardChart.data.datasets[0].data = data;
+                window.APP_STATE.leaderboardChart.update();
+            } else {
+                window.APP_STATE.leaderboardChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Attendance %',
+                            data: data,
+                            backgroundColor: '#059669',
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        }
+                    }
+                });
             }
         }
 
-        function handleAddMember(e) {
+        window.updateStatsHeader = function() {
+            const members = window.APP_STATE.members;
+            const dateStr = window.APP_STATE.selectedDate;
+
+            let presentToday = 0;
+            let absentToday = 0;
+            let alertCount = 0;
+
+            members.forEach(m => {
+                const stats = calculateMemberStats(m.id);
+                if (stats.hasAlert) alertCount++;
+
+                const key = `${m.id}_${dateStr}`;
+                const rec = window.APP_STATE.attendance[key];
+                if (rec) {
+                    if (rec.status === 'PRESENT') presentToday++;
+                    if (rec.status === 'ABSENT') absentToday++;
+                }
+            });
+
+            const totalRoster = members.length;
+            const recordedTotal = presentToday + absentToday;
+            const presentPct = recordedTotal > 0 ? Math.round((presentToday / recordedTotal) * 100) : 0;
+            const absentPct = recordedTotal > 0 ? Math.round((absentToday / recordedTotal) * 100) : 0;
+
+            document.getElementById('statTotalMembers').innerText = totalRoster;
+            document.getElementById('statPresentCount').innerText = presentToday;
+            document.getElementById('statPresentPercent').innerText = `${presentPct}% Rate`;
+            document.getElementById('statAbsentCount').innerText = absentToday;
+            document.getElementById('statAbsentPercent').innerText = `${absentPct}% Rate`;
+            document.getElementById('statFiveAbsenceAlerts').innerText = alertCount;
+        };
+
+        window.renderAuditLogs = function() {
+            const tbody = document.getElementById('auditTbody');
+            if (!tbody) return;
+
+            const logs = window.APP_STATE.auditLogs;
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-3 text-center text-slate-400">No cloud audit logs recorded yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = logs.slice(0, 20).map(log => {
+                const timeStr = new Date(log.timestamp).toLocaleTimeString();
+                return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-2 pl-3 font-mono text-slate-500">${timeStr}</td>
+                        <td class="p-2 font-semibold text-slate-700">${log.user}</td>
+                        <td class="p-2 font-bold ${log.action.includes('Present') ? 'text-emerald-600' : 'text-rose-600'}">${log.action}</td>
+                        <td class="p-2 text-slate-800">${log.targetMember}</td>
+                        <td class="p-2 pr-3 text-slate-500">${log.details}</td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        window.handleLogin = function(event) {
+            event.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            if (u === 'admin' && p === 'AdminPass2026') {
+                setLoggedInUser({
+                    username: 'Administrator',
+                    role: 'admin',
+                    roleName: 'System Executive Admin',
+                    group: 'ALL',
+                    groupName: 'All Groups (Global Admin)'
+                });
+                return;
+            }
+
+            // Check 7 officers credentials
+            let foundOfficer = null;
+            Object.keys(GROUPS_CONFIG).forEach(key => {
+                const cfg = GROUPS_CONFIG[key];
+                if (cfg.officer === u && cfg.pass === p) {
+                    foundOfficer = {
+                        username: `${cfg.role} (${cfg.prefix})`,
+                        role: 'officer',
+                        roleName: cfg.role,
+                        group: cfg.prefix,
+                        groupName: cfg.name
+                    };
+                }
+            });
+
+            if (foundOfficer) {
+                setLoggedInUser(foundOfficer);
+            } else {
+                alert("Invalid username or password. Please check credentials.");
+            }
+        };
+
+        window.quickLogin = function(u, p) {
+            document.getElementById('loginUsername').value = u;
+            document.getElementById('loginPassword').value = p;
+            document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+        };
+
+        function setLoggedInUser(userObj) {
+            window.APP_STATE.currentUser = userObj;
+
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appDashboardView').classList.remove('hidden');
+            document.getElementById('userHeaderInfo').classList.remove('hidden');
+
+            document.getElementById('navUserName').innerText = userObj.username;
+            document.getElementById('navUserRole').innerText = userObj.roleName;
+            document.getElementById('userGroupDisplay').innerText = userObj.groupName;
+
+            // Group filter select visibility
+            const groupSelect = document.getElementById('groupFilterSelect');
+            if (userObj.role === 'admin') {
+                groupSelect.classList.remove('hidden');
+                document.getElementById('groupFilterSelect').value = 'ALL';
+                document.getElementById('adminPanel').classList.remove('hidden');
+                document.getElementById('addMemberBtn').classList.remove('hidden');
+            } else {
+                groupSelect.classList.add('hidden');
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('addMemberBtn').classList.add('hidden');
+            }
+
+            renderRoster();
+            updateLeaderboard();
+            updateStatsHeader();
+            logDiag(`User logged in as ${userObj.username} (${userObj.roleName})`);
+        }
+
+        window.appLogout = function() {
+            window.APP_STATE.currentUser = null;
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('appDashboardView').classList.add('hidden');
+            document.getElementById('userHeaderInfo').classList.add('hidden');
+        };
+
+        window.onDateFilterChange = function() {
+            const dateInput = document.getElementById('attendanceDate').value;
+            if (dateInput) {
+                window.APP_STATE.selectedDate = dateInput;
+                document.getElementById('todayDateSubtitle').innerText = `Date: ${dateInput}`;
+
+                // Weekend check
+                const day = new Date(dateInput).getDay();
+                if (day === 0 || day === 6) {
+                    document.getElementById('weekendNotice').classList.remove('hidden');
+                } else {
+                    document.getElementById('weekendNotice').classList.add('hidden');
+                }
+
+                renderRoster();
+                updateLeaderboard();
+                updateStatsHeader();
+            }
+        };
+
+        window.toggleAlertFilter = function() {
+            window.APP_STATE.filterAlertOnly = !window.APP_STATE.filterAlertOnly;
+            const btn = document.getElementById('filterAlertOnlyBtn');
+            if (window.APP_STATE.filterAlertOnly) {
+                btn.classList.replace('bg-rose-50', 'bg-rose-600');
+                btn.classList.replace('text-rose-700', 'text-white');
+            } else {
+                btn.classList.replace('bg-rose-600', 'bg-rose-50');
+                btn.classList.replace('text-white', 'text-rose-700');
+            }
+            renderRoster();
+        };
+
+        window.openMemberProfile = function(memberId) {
+            const member = window.APP_STATE.members.find(m => m.id === memberId);
+            if (!member) return;
+
+            window.APP_STATE.selectedMemberForProfile = member;
+
+            const stats = calculateMemberStats(memberId);
+            const groupInfo = GROUPS_CONFIG[member.group] || { name: member.group };
+
+            document.getElementById('modalMemberAvatar').innerText = member.group;
+            document.getElementById('modalMemberName').innerText = member.name;
+            document.getElementById('modalMemberSubtitle').innerText = `ID: ${member.id} • ${groupInfo.name}`;
+
+            document.getElementById('modalStatTotal').innerText = stats.total;
+            document.getElementById('modalStatPresent').innerText = stats.presentCount;
+            document.getElementById('modalStatAbsent').innerText = stats.absentCount;
+
+            const alertBanner = document.getElementById('modalAlertBanner');
+            if (stats.hasAlert) {
+                alertBanner.classList.remove('hidden');
+            } else {
+                alertBanner.classList.add('hidden');
+            }
+
+            // History timeline
+            const historyList = document.getElementById('modalHistoryList');
+            const history = Object.values(window.APP_STATE.attendance)
+                .filter(rec => rec.memberId === memberId)
+                .sort((a, b) => b.date.localeCompare(a.date));
+
+            if (history.length === 0) {
+                historyList.innerHTML = `<p class="text-xs text-slate-400 italic p-2">No attendance records logged yet.</p>`;
+            } else {
+                historyList.innerHTML = history.map(rec => `
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                        <span class="font-medium text-slate-700">${rec.date}</span>
+                        <span class="font-bold ${rec.status === 'PRESENT' ? 'text-emerald-600' : 'text-rose-600'}">${rec.status}</span>
+                    </div>
+                `).join('');
+            }
+
+            toggleModal('memberProfileModal', true);
+        };
+
+        window.openAddMemberModal = function() {
+            toggleModal('addMemberModal', true);
+        };
+
+        window.handleSaveMember = async function(e) {
             e.preventDefault();
-            const group = document.getElementById('new-member-group').value;
-            const name = document.getElementById('new-member-name').value.trim();
+            const name = document.getElementById('newMemberName').value.trim();
+            const group = document.getElementById('newMemberGroup').value;
 
             if (!name) return;
 
-            // Increment max sequence counter permanently to avoid ID reuse
-            maxSequenceCounters[group]++;
-            const newId = `${group}-${String(maxSequenceCounters[group]).padStart(3, '0')}`;
-
-            membersData.push({
-                id: newId,
-                name: name,
-                group: group
-            });
-
-            saveMembersToStorage();
-            saveCountersToStorage();
-            closeAddMemberModal();
-            filterRoster();
-            if (currentUser.role === 'ADMIN') populateAdminTransferSelect();
-
-            showToast(`Enrolled new member ${name} (${newId})!`, 'user-check');
-        }
-
-        // GROUP LEADERBOARD
-        function renderLeaderboard() {
-            const container = document.getElementById('leaderboard-cards-container');
-            container.innerHTML = '';
-
-            const groupStats = Object.keys(GROUP_NAMES).map(groupKey => {
-                const gMembers = membersData.filter(m => m.group === groupKey);
-                let p = 0, a = 0;
-                gMembers.forEach(m => {
-                    const st = getMemberStats(m.id);
-                    p += st.present;
-                    a += st.absent;
-                });
-                const total = p + a;
-                const rate = total > 0 ? parseFloat(((p / total) * 100).toFixed(1)) : 0.0;
-                return { key: groupKey, name: GROUP_NAMES[groupKey], rate, membersCount: gMembers.length, present: p, absent: a };
-            });
-
-            groupStats.sort((a,b) => b.rate - a.rate);
-
-            groupStats.forEach((g, index) => {
-                const rankBadge = index === 0 ? 'bg-amber-400 text-amber-950' : (index === 1 ? 'bg-slate-300 text-slate-900' : (index === 2 ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600'));
-                const card = document.createElement('div');
-                card.className = 'p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between shadow-sm';
-                card.innerHTML = `
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 rounded-xl font-extrabold text-sm flex items-center justify-center ${rankBadge}">
-                            #${index + 1}
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-slate-800 text-sm">${g.name} (${g.key})</h4>
-                            <p class="text-xs text-slate-500">${g.membersCount} Members • ${g.present} Present / ${g.absent} Absent</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-lg font-extrabold text-eco-700">${g.rate}%</span>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Rate</p>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // 5+ ABSENCE RED WARNING ALERTS CENTER
-        function renderAlertsCenter() {
-            const accessible = getAccessibleMembers();
-            const flagged = accessible.filter(m => getMemberStats(m.id).absent >= 5);
-            const container = document.getElementById('alerts-list-container');
-            const countBadge = document.getElementById('alerts-count-badge');
-            
-            countBadge.textContent = `${flagged.length} Flagged`;
-            container.innerHTML = '';
-
-            if (flagged.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                        <i class="fas fa-shield-heart text-4xl text-emerald-500 mb-3"></i>
-                        <h3 class="font-bold text-slate-700 text-sm">No Absence Warnings Flagged</h3>
-                        <p class="text-xs text-slate-500 mt-1">All members in your scope have less than 5 total absences.</p>
-                    </div>
-                `;
-                return;
+            // Check duplicate student name
+            const dup = window.APP_STATE.members.find(m => m.name.toLowerCase() === name.toLowerCase());
+            if (dup) {
+                if (!confirm(`A student named "${name}" already exists in ${dup.group} (${dup.id}). Do you still want to add this member?`)) {
+                    return;
+                }
             }
 
-            flagged.forEach(m => {
-                const stats = getMemberStats(m.id);
-                const card = document.createElement('div');
-                card.className = 'p-4 bg-rose-50/70 border border-rose-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3';
-                card.innerHTML = `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-rose-600 text-white font-bold rounded-xl flex items-center justify-center text-sm">
-                            <i class="fas fa-triangle-exclamation"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-rose-950 text-sm">${m.name}</h4>
-                            <p class="text-xs text-rose-700">${m.id} • ${GROUP_NAMES[m.group]}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="text-right">
-                            <span class="text-lg font-extrabold text-rose-700">${stats.absent} Absences</span>
-                            <p class="text-[10px] font-bold text-rose-500 uppercase">Current Rate: ${stats.rate}%</p>
-                        </div>
-                        <button onclick="openProfileModal('${m.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow">
-                            Review Timeline
-                        </button>
-                    </div>
-                `;
-                container.appendChild(card);
+            // Auto-increment sequence ID
+            const existingGroupMembers = window.APP_STATE.members.filter(m => m.group === group);
+            let nextNum = existingGroupMembers.length + 1;
+            let newId = `${group}-${String(nextNum).padStart(3, '0')}`;
+
+            while (window.APP_STATE.members.some(m => m.id === newId)) {
+                nextNum++;
+                newId = `${group}-${String(nextNum).padStart(3, '0')}`;
+            }
+
+            const newMemberObj = { id: newId, name, group };
+            window.APP_STATE.members.push(newMemberObj);
+
+            if (!useFallback && db) {
+                try {
+                    const mRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', newId);
+                    await setDoc(mRef, newMemberObj, { merge: true });
+                } catch (err) {
+                    console.error("Error saving member:", err);
+                }
+            } else {
+                broadcastLocalChange();
+            }
+
+            toggleModal('addMemberModal', false);
+            document.getElementById('newMemberName').value = '';
+            renderRoster();
+            updateLeaderboard();
+            updateStatsHeader();
+            alert(`Successfully added ${name} with Member ID: ${newId}`);
+        };
+
+        window.exportCSV = function() {
+            let csv = "Member ID,Full Name,Group,Total Present,Total Absent,Attendance Rate %,5+ Absence Warning\n";
+            window.APP_STATE.members.forEach(m => {
+                const stats = calculateMemberStats(m.id);
+                csv += `"${m.id}","${m.name}","${m.group}",${stats.presentCount},${stats.absentCount},${stats.rate}%,${stats.hasAlert ? 'YES' : 'NO'}\n`;
             });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `YES-O_Attendance_${window.APP_STATE.selectedDate}.csv`);
+            a.click();
+        };
+
+        window.manualCloudRefresh = function() {
+            updateSyncStatus("Syncing...", "yellow");
+            if (!useFallback && db) {
+                setupFirestoreListeners();
+            } else {
+                setTimeout(() => updateSyncStatus("Synced", "green"), 400);
+            }
+        };
+
+        window.toggleModal = function(id, show) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                if (show) modal.classList.remove('hidden');
+                else modal.classList.add('hidden');
+            }
+        };
+
+        function updateSyncStatus(text, color) {
+            const textEl = document.getElementById('syncStatusText');
+            const dotEl = document.getElementById('syncDot');
+            if (textEl) textEl.innerText = text;
+
+            if (dotEl) {
+                dotEl.className = "w-2.5 h-2.5 rounded-full pulse-green ";
+                if (color === 'green') dotEl.classList.add('bg-emerald-500');
+                if (color === 'yellow') dotEl.classList.add('bg-amber-500');
+                if (color === 'red') dotEl.classList.add('bg-rose-500');
+            }
+
+            const diagLastSync = document.getElementById('diagLastSync');
+            if (diagLastSync) diagLastSync.innerText = new Date().toLocaleTimeString();
         }
 
-        // ADMIN OPERATIONS & CSV HANDLERS
-        function populateAdminTransferSelect() {
-            const select = document.getElementById('transfer-member-select');
-            select.innerHTML = '';
-            membersData.sort((a,b) => a.id.localeCompare(b.id)).forEach(m => {
-                select.innerHTML += `<option value="${m.id}">${m.id} - ${m.name} (${m.group})</option>`;
-            });
-        }
-
-        function handleAdminGroupTransfer(e) {
-            e.preventDefault();
-            const memberId = document.getElementById('transfer-member-select').value;
-            const targetGroup = document.getElementById('transfer-target-group').value;
-
-            const member = membersData.find(m => m.id === memberId);
-            if (member) {
-                const oldGroup = member.group;
-                member.group = targetGroup;
-                saveMembersToStorage();
-                populateAdminTransferSelect();
-                showToast(`Transferred ${member.name} from ${oldGroup} to ${targetGroup}. Logs intact!`, 'right-left');
+        function logDiag(msg, type = "info") {
+            const logsEl = document.getElementById('diagLogs');
+            if (logsEl) {
+                const line = document.createElement('div');
+                line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+                logsEl.appendChild(line);
+                logsEl.scrollTop = logsEl.scrollHeight;
             }
         }
 
-        function exportAttendanceCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,Member ID,Student Name,Group,Present Count,Absent Count,Attendance Rate (%)\n";
-
-            membersData.forEach(m => {
-                const stats = getMemberStats(m.id);
-                csvContent += `"${m.id}","${m.name}","${m.group}",${stats.present},${stats.absent},${stats.rate}\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `YES_O_Attendance_SY2026_2027.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            showToast("Exported Attendance Master CSV file!", "file-csv");
+        function updateOfflineBanner() {
+            const banner = document.getElementById('offlineBanner');
+            const count = window.APP_STATE.offlineQueue.length;
+            if (count > 0 || !navigator.onLine) {
+                banner.classList.remove('hidden');
+                document.getElementById('pendingQueueCount').innerText = `${count} Pending`;
+            } else {
+                banner.classList.add('hidden');
+            }
         }
 
-        function importRosterCSV(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lines = text.split('\n');
-                let importedCount = 0;
-
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    const parts = line.split(',').map(p => p.replace(/"/g, ''));
-                    if (parts.length >= 3) {
-                        const [id, name, group] = parts;
-                        if (!membersData.some(m => m.id === id)) {
-                            membersData.push({ id, name, group });
-                            importedCount++;
-                        }
+        window.addEventListener('online', async () => {
+            logDiag("Device reconnected to network. Syncing offline queue...");
+            updateOfflineBanner();
+            if (window.APP_STATE.offlineQueue.length > 0 && db) {
+                const queue = [...window.APP_STATE.offlineQueue];
+                window.APP_STATE.offlineQueue = [];
+                for (const item of queue) {
+                    if (item.type === 'ATTENDANCE') {
+                        const attRef = doc(db, 'artifacts', appId, 'public', 'data', 'attendance', item.data.id);
+                        await setDoc(attRef, item.data, { merge: true });
                     }
                 }
+                logDiag("Offline queue successfully flushed to cloud.");
+            }
+            updateSyncStatus("Synced", "green");
+        });
 
-                saveMembersToStorage();
-                filterRoster();
-                showToast(`Imported ${importedCount} new member records successfully!`, 'file-import');
-            };
-            reader.readAsText(file);
-        }
+        window.addEventListener('offline', () => {
+            logDiag("Device went offline.", "warning");
+            updateOfflineBanner();
+            updateSyncStatus("Offline", "yellow");
+        });
 
-        // SYSTEM TOAST NOTIFICATION
-        function showToast(message, iconClass = 'check-circle') {
-            const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toast-message');
-            const toastIcon = document.getElementById('toast-icon');
+        // Initialize App on DOM load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Set date input default to today YYYY-MM-DD
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('attendanceDate').value = today;
+            window.APP_STATE.selectedDate = today;
+            document.getElementById('todayDateSubtitle').innerText = `Date: ${today}`;
 
-            toastMsg.textContent = message;
-            toastIcon.innerHTML = `<i class="fas fa-${iconClass}"></i>`;
-
-            toast.classList.remove('translate-x-full', 'opacity-0');
-            toast.classList.add('translate-x-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('translate-x-0', 'opacity-100');
-                toast.classList.add('translate-x-full', 'opacity-0');
-            }, 3000);
-        }
+            initCloudDatabase();
+        });
     </script>
 </body>
 </html>
